@@ -1,0 +1,2063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Portal | CodeLX.com</title>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs/loader.min.js"></script>
+<style>
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --primary: #ff5e00;
+  --primary-light: #ff8c42;
+  --primary-dark: #cc4a00;
+  --primary-gradient: linear-gradient(135deg, #ff5e00, #ff8c42);
+  --accent-blue: #00f2fe;
+  --accent-purple: #a855f7;
+  --accent-green: #22c55e;
+  --bg-deep: #050608;
+  --bg-dark: #09090f;
+  --bg-card: #0d0e1a;
+  --bg-glass: rgba(255,255,255,0.04);
+  --border-glass: rgba(255,255,255,0.08);
+  --text-bright: #f0f2f8;
+  --text-muted: #7a7d9a;
+  --text-dim: #3a3d5a;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --sidebar-w: 250px;
+  --font-main: 'Segoe UI', system-ui, sans-serif;
+}
+html, body { height: 100%; overflow: hidden; }
+body { font-family: var(--font-main); background: var(--bg-deep); color: var(--text-bright); font-size: 14px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+@keyframes slideUp { from{transform:translateY(20px);opacity:0;} to{transform:translateY(0);opacity:1;} }
+@keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+@keyframes shimmer { 0%{background-position:-200% 0;} 100%{background-position:200% 0;} }
+@keyframes particleFly { 0%{transform:translateY(100vh) translateX(0) scale(0);opacity:0;} 10%{opacity:1;} 90%{opacity:0.5;} 100%{transform:translateY(-100px) translateX(50px) scale(1.5);opacity:0;} }
+@keyframes cardHover { to{transform:translateY(-4px);} }
+@keyframes glowPulse { 0%,100%{box-shadow:0 0 20px rgba(255,94,0,0.2);} 50%{box-shadow:0 0 40px rgba(255,94,0,0.5);} }
+@keyframes badgePop { 0%{transform:scale(0) rotate(-20deg);} 80%{transform:scale(1.2) rotate(5deg);} 100%{transform:scale(1) rotate(0);} }
+@keyframes dot-bounce {0%,80%,100%{transform:scale(0.8);}40%{transform:scale(1.2);}}
+
+/* ===== LOADER ===== */
+#loader-overlay {
+  position: fixed; inset: 0; background: var(--bg-deep); z-index: 99999;
+  display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 18px;
+  transition: opacity 0.5s;
+}
+#loader-overlay.hidden { opacity: 0; pointer-events: none; }
+.loader-icon { width: 56px; height: 56px; animation: spin 1.5s linear infinite; }
+.loader-text { font-size: 1.1rem; font-weight: 600; color: var(--text-muted); }
+.loader-bar { width: 200px; height: 3px; background: var(--border-glass); border-radius: 10px; overflow: hidden; }
+.loader-bar-fill { height: 100%; background: var(--primary-gradient); border-radius: 10px; animation: shimmer 1.5s infinite; background-size: 200% 100%; }
+
+/* ===== PARTICLES ===== */
+#particles-bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.particle { position: absolute; border-radius: 50%; animation: particleFly linear infinite; }
+.ambient-glow { position: fixed; width: 600px; height: 600px; border-radius: 50%; pointer-events: none; filter: blur(120px); z-index: 0; }
+.ambient-glow.orange { background: radial-gradient(circle, rgba(255,94,0,0.12) 0%, transparent 70%); top: -10%; left: -10%; }
+.ambient-glow.blue { background: radial-gradient(circle, rgba(0,242,254,0.08) 0%, transparent 70%); bottom: -10%; right: -10%; }
+
+/* ===== AUTH OVERLAY ===== */
+#auth-overlay {
+  position: fixed; inset: 0; background: var(--bg-deep); z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+}
+.auth-box {
+  background: var(--bg-card); border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg); padding: 40px; width: 420px; max-width: 95vw;
+  animation: slideUp 0.4s ease;
+}
+.auth-logo { text-align: center; margin-bottom: 30px; }
+.auth-logo h1 { font-size: 2rem; font-weight: 900; }
+.auth-logo span.brand-accent { color: var(--primary); }
+.auth-tabs { display: flex; gap: 0; background: rgba(255,255,255,0.03); border-radius: var(--radius-sm); padding: 4px; margin-bottom: 28px; }
+.auth-tab { flex: 1; text-align: center; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; color: var(--text-muted); font-size: 0.9rem; }
+.auth-tab.active { background: var(--primary-gradient); color: #fff; }
+.auth-form { display: flex; flex-direction: column; gap: 16px; }
+.auth-form.hidden { display: none; }
+.input-group { display: flex; flex-direction: column; gap: 6px; }
+.input-group label { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
+.inp {
+  width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border-glass); border-radius: var(--radius-sm);
+  color: var(--text-bright); font-size: 0.95rem; outline: none; transition: border-color 0.2s;
+}
+.inp:focus { border-color: var(--primary); }
+.btn-auth {
+  width: 100%; padding: 13px; background: var(--primary-gradient); color: #fff;
+  border: none; border-radius: var(--radius-sm); font-weight: 700; font-size: 1rem;
+  cursor: pointer; transition: opacity 0.2s; margin-top: 4px;
+}
+.btn-auth:hover { opacity: 0.9; }
+.auth-divider { text-align: center; color: var(--text-muted); font-size: 0.85rem; margin: 4px 0; }
+.auth-error { color: #ff4757; font-size: 0.85rem; text-align: center; display: none; }
+.auth-error.show { display: block; }
+
+/* ===== LAYOUT ===== */
+.app-container {
+  display: flex; height: 100vh; position: relative; z-index: 1;
+}
+.sidebar {
+  width: var(--sidebar-w); flex-shrink: 0; background: rgba(9,9,15,0.9);
+  border-right: 1px solid var(--border-glass); backdrop-filter: blur(20px);
+  display: flex; flex-direction: column; padding: 20px 12px; gap: 8px;
+  overflow-y: auto; z-index: 100;
+}
+.sidebar-logo {
+  display: flex; align-items: center; gap: 10px; padding: 12px 8px 20px;
+  font-size: 1.4rem; font-weight: 900; border-bottom: 1px solid var(--border-glass); margin-bottom: 8px;
+}
+.sidebar-logo svg { color: var(--primary); }
+.brand-accent { color: var(--primary); }
+.nav-item {
+  display: flex; align-items: center; gap: 12px; padding: 11px 12px;
+  border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s;
+  color: var(--text-muted); font-weight: 500; position: relative; user-select: none;
+}
+.nav-item:hover { background: rgba(255,94,0,0.08); color: var(--text-bright); }
+.nav-item.active { background: rgba(255,94,0,0.15); color: var(--primary); }
+.nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+.nav-item .notif-badge {
+  margin-left: auto; background: var(--primary); color: #fff; font-size: 0.7rem;
+  font-weight: 700; padding: 2px 7px; border-radius: 50px; min-width: 20px; text-align: center;
+}
+.sidebar-footer { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border-glass); }
+.sidebar-user { display: flex; align-items: center; gap: 10px; padding: 10px 8px; border-radius: var(--radius-sm); cursor: pointer; transition: background 0.2s; }
+.sidebar-user:hover { background: rgba(255,255,255,0.04); }
+.avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary-gradient); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem; flex-shrink: 0; }
+.avatar-lg { width: 80px; height: 80px; font-size: 2rem; }
+.user-meta { overflow: hidden; }
+.user-meta h4 { font-size: 0.85rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-meta p { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.main-content { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+.topbar {
+  position: sticky; top: 0; z-index: 50; background: rgba(5,6,8,0.85);
+  backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-glass);
+  padding: 14px 28px; display: flex; align-items: center; gap: 16px; flex-shrink: 0;
+}
+.search-wrap { flex: 1; position: relative; max-width: 440px; }
+.search-wrap svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 16px; height: 16px; }
+.search-inp { width: 100%; padding: 10px 14px 10px 40px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); border-radius: 50px; color: var(--text-bright); outline: none; font-size: 0.9rem; }
+.search-inp:focus { border-color: var(--primary); }
+.topbar-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.icon-btn { width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; position: relative; }
+.icon-btn:hover { background: rgba(255,94,0,0.1); border-color: var(--primary); }
+.icon-btn svg { width: 18px; height: 18px; }
+.badge-dot { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); border: 2px solid var(--bg-deep); }
+.btn-sm { padding: 8px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: rgba(255,255,255,0.04); color: var(--text-bright); cursor: pointer; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.2s; white-space: nowrap; }
+.btn-sm:hover { background: rgba(255,94,0,0.1); border-color: var(--primary); }
+.btn-primary { padding: 10px 20px; border-radius: var(--radius-sm); border: none; background: var(--primary-gradient); color: #fff; cursor: pointer; font-size: 0.9rem; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; transition: opacity 0.2s; }
+.btn-primary:hover { opacity: 0.9; }
+
+/* ===== STREAK ===== */
+.streak-chip { display: flex; align-items: center; gap: 6px; padding: 7px 14px; background: rgba(255,94,0,0.1); border: 1px solid rgba(255,94,0,0.3); border-radius: 50px; font-size: 0.85rem; font-weight: 700; color: var(--primary); }
+
+/* ===== PANELS ===== */
+.view-panel { display: none; padding: 28px; animation: fadeIn 0.3s ease; flex: 1; }
+.view-panel.active { display: block; }
+.panel-header { margin-bottom: 28px; }
+.panel-header h1 { font-size: 2rem; font-weight: 800; margin-bottom: 6px; }
+.panel-header p { color: var(--text-muted); font-size: 0.95rem; }
+
+/* ===== GLASS CARD ===== */
+.glass { background: var(--bg-glass); border: 1px solid var(--border-glass); border-radius: var(--radius-md); backdrop-filter: blur(12px); }
+.card { background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: var(--radius-md); transition: all 0.3s; }
+.card:hover { border-color: rgba(255,94,0,0.25); transform: translateY(-2px); }
+
+/* ===== HOME DASHBOARD ===== */
+.home-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.stat-cards { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; margin-bottom: 20px; }
+.stat-card { background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 20px; }
+.stat-card .stat-icon { width: 42px; height: 42px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+.stat-card .stat-num { font-size: 1.8rem; font-weight: 800; }
+.stat-card .stat-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+.progress-bar-wrap { width: 100%; height: 6px; background: rgba(255,255,255,0.06); border-radius: 10px; overflow: hidden; margin-top: 8px; }
+.progress-bar-fill { height: 100%; background: var(--primary-gradient); border-radius: 10px; transition: width 1s ease; }
+.bulletin-item { display: flex; gap: 12px; align-items: flex-start; padding: 12px; background: rgba(255,255,255,0.02); border-radius: var(--radius-sm); border-left: 3px solid var(--primary); }
+.badge-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 50px; font-size: 0.75rem; font-weight: 700; }
+
+/* ===== LECTURES ===== */
+.lectures-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+.lecture-card { background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: var(--radius-md); overflow: hidden; cursor: pointer; transition: all 0.3s; }
+.lecture-card:hover { border-color: rgba(255,94,0,0.4); transform: translateY(-3px); box-shadow: 0 8px 30px rgba(255,94,0,0.1); }
+.lecture-thumb { aspect-ratio: 16/9; background: linear-gradient(135deg, #0d0e1a, #1a1b2e); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+.lecture-thumb .play-icon { width: 50px; height: 50px; border-radius: 50%; background: var(--primary-gradient); display: flex; align-items: center; justify-content: center; transition: transform 0.3s; }
+.lecture-card:hover .play-icon { transform: scale(1.1); }
+.lecture-progress { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: rgba(255,255,255,0.1); }
+.lecture-progress-fill { height: 100%; background: var(--primary); }
+.lecture-body { padding: 16px; }
+.lecture-body h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; line-height: 1.4; }
+.lecture-meta { display: flex; align-items: center; gap: 10px; font-size: 0.78rem; color: var(--text-muted); }
+.cat-filter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+.cat-btn { padding: 7px 16px; border-radius: 50px; border: 1px solid var(--border-glass); background: transparent; color: var(--text-muted); cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.2s; }
+.cat-btn.active, .cat-btn:hover { border-color: var(--primary); color: var(--primary); background: rgba(255,94,0,0.08); }
+
+/* ===== WORKSHOPS ===== */
+.workshops-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+.workshop-card { background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 22px; transition: all 0.3s; }
+.workshop-card:hover { border-color: rgba(0,242,254,0.3); transform: translateY(-2px); }
+.workshop-card.upcoming { border-left: 4px solid var(--accent-blue); }
+.workshop-card.live { border-left: 4px solid var(--accent-green); animation: glowPulse 2s infinite; }
+.live-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 50px; background: rgba(34,197,94,0.15); color: var(--accent-green); font-size: 0.75rem; font-weight: 700; }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-green); animation: pulse 1s infinite; }
+
+/* ===== TERMINAL ===== */
+.terminal-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; height: calc(100vh - 240px); }
+.editor-wrap { background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: var(--radius-md); overflow: hidden; display: flex; flex-direction: column; }
+.editor-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border-glass); flex-shrink: 0; }
+.lang-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--primary); }
+#monaco-editor { flex: 1; }
+.console-wrap { background: #0a0b0f; border: 1px solid var(--border-glass); border-radius: var(--radius-md); overflow: hidden; display: flex; flex-direction: column; }
+.console-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border-glass); flex-shrink: 0; }
+.console-output { flex: 1; overflow-y: auto; padding: 16px; font-family: 'Courier New', monospace; font-size: 0.88rem; line-height: 1.7; color: #a0f0a0; }
+.console-output .err { color: #ff6b6b; }
+.console-output .info { color: #74b9ff; }
+.lang-select { padding: 8px 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); color: var(--text-bright); font-size: 0.88rem; cursor: pointer; outline: none; }
+.lang-select:focus { border-color: var(--primary); }
+
+/* ===== NOTES ===== */
+.notes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.note-card { background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 20px; transition: all 0.3s; cursor: pointer; }
+.note-card:hover { border-color: rgba(168,85,247,0.4); transform: translateY(-2px); }
+.note-icon { width: 44px; height: 44px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; margin-bottom: 14px; font-size: 1.5rem; }
+.note-card h3 { font-size: 0.92rem; font-weight: 700; margin-bottom: 6px; }
+.note-card p { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 14px; }
+.note-actions { display: flex; gap: 8px; }
+.note-btn { flex: 1; padding: 7px; text-align: center; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border-glass); background: transparent; color: var(--text-muted); transition: all 0.2s; }
+.note-btn:hover { background: rgba(255,94,0,0.1); border-color: var(--primary); color: var(--primary); }
+.notes-search { position: relative; max-width: 320px; }
+.notes-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 16px; height: 16px; pointer-events: none; }
+.notes-search input { width: 100%; padding: 10px 14px 10px 38px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); color: var(--text-bright); outline: none; font-size: 0.88rem; }
+.notes-search input:focus { border-color: var(--primary); }
+
+/* ===== NOTIFICATIONS ===== */
+.notif-list { display: flex; flex-direction: column; gap: 12px; }
+.notif-item { display: flex; gap: 14px; align-items: flex-start; padding: 16px; background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: var(--radius-md); transition: all 0.2s; }
+.notif-item.unread { border-left: 3px solid var(--primary); background: rgba(255,94,0,0.04); }
+.notif-icon { width: 40px; height: 40px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.notif-body h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; }
+.notif-body p { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+.notif-time { font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; }
+
+/* ===== MY LEARNING ===== */
+.learning-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.activity-log-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(255,255,255,0.02); border-radius: var(--radius-sm); }
+.activity-log-item svg { color: var(--text-muted); flex-shrink: 0; }
+
+/* ===== ASSIGNMENTS ===== */
+.assignments-list { display: flex; flex-direction: column; gap: 16px; }
+.assign-card { background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 22px; }
+.assign-card.pending { border-left: 4px solid #ffcc00; }
+.assign-card.completed { border-left: 4px solid var(--accent-green); }
+.assign-card.overdue { border-left: 4px solid #ff4757; }
+.assign-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+.assign-header h3 { font-weight: 700; font-size: 1rem; }
+.status-chip { padding: 4px 12px; border-radius: 50px; font-size: 0.75rem; font-weight: 700; }
+.status-chip.pending { background: rgba(255,204,0,0.15); color: #ffcc00; }
+.status-chip.completed { background: rgba(34,197,94,0.15); color: var(--accent-green); }
+.status-chip.overdue { background: rgba(255,71,87,0.15); color: #ff4757; }
+
+/* ===== DIGITAL TOOLS ===== */
+.tools-filter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+.tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+.tool-card {
+  background: var(--bg-card); border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md); padding: 20px 16px; text-align: center;
+  cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;
+  animation: slideUp 0.4s ease both;
+}
+.tool-card::before {
+  content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity 0.3s;
+  background: radial-gradient(circle at 50% 0%, rgba(255,94,0,0.15), transparent 60%);
+}
+.tool-card:hover::before { opacity: 1; }
+.tool-card:hover { border-color: rgba(255,94,0,0.4); transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,0.3); }
+.tool-emoji { font-size: 2.2rem; margin-bottom: 10px; display: block; }
+.tool-card h3 { font-size: 0.85rem; font-weight: 700; margin-bottom: 4px; }
+.tool-card p { font-size: 0.73rem; color: var(--text-muted); }
+.tool-tag { display: inline-block; padding: 2px 8px; border-radius: 50px; font-size: 0.68rem; font-weight: 600; margin-top: 8px; }
+
+/* ===== PROFILE ===== */
+.profile-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 24px; }
+.profile-card { background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 28px; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; margin-bottom: 6px; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
+.activity-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.stat-mini { background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); padding: 14px; }
+.stat-mini .num { font-size: 1.6rem; font-weight: 800; color: var(--primary); }
+.stat-mini .lbl { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+
+/* ===== MODALS ===== */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000;
+  display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);
+  opacity: 0; pointer-events: none; transition: opacity 0.25s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal-box { background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: var(--radius-lg); max-height: 85vh; overflow-y: auto; width: 90%; }
+.modal-box.sm { max-width: 480px; }
+.modal-box.md { max-width: 640px; }
+.modal-box.lg { max-width: 900px; }
+.modal-box.full { max-width: 95vw; height: 90vh; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 22px 28px; border-bottom: 1px solid var(--border-glass); position: sticky; top: 0; background: var(--bg-card); z-index: 1; }
+.modal-header h2 { font-weight: 800; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
+.close-btn { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+.close-btn:hover { background: rgba(255,71,87,0.2); border-color: #ff4757; color: #ff4757; }
+.modal-body { padding: 24px 28px; }
+
+/* ===== VIDEO PLAYER MODAL ===== */
+.video-player-wrap video { width: 100%; border-radius: var(--radius-md); background: #000; }
+.video-info { padding: 16px 0; }
+
+/* ===== TOOL POPUP ===== */
+.tool-popup-content { padding: 0; }
+.tool-popup-inner { padding: 20px; }
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+/* ===== SEARCH RESULTS ===== */
+.search-results-overlay { position: absolute; top: 100%; left: 0; right: 0; margin-top: 8px; background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: var(--radius-md); overflow: hidden; z-index: 200; max-height: 360px; overflow-y: auto; }
+.search-result-item { padding: 12px 16px; cursor: pointer; transition: background 0.15s; display: flex; align-items: center; gap: 10px; }
+.search-result-item:hover { background: rgba(255,94,0,0.08); }
+
+/* ===== GAMIFICATION ===== */
+.badges-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.badge-item { font-size: 1.4rem; title: attr(data-name); cursor: default; animation: badgePop 0.4s ease both; }
+.xp-bar { margin-top: 12px; }
+
+/* ===== TYPING DOTS ===== */
+.typing-dots span { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); margin: 0 2px; animation: dot-bounce 1.2s infinite; }
+.typing-dots span:nth-child(2){animation-delay:.2s;}
+.typing-dots span:nth-child(3){animation-delay:.4s;}
+
+/* ===== AI CHAT TOOL ===== */
+.chat-messages { height: 320px; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; background: rgba(0,0,0,0.2); border-radius: var(--radius-sm); margin-bottom: 14px; }
+.chat-msg { max-width: 80%; padding: 10px 14px; border-radius: 14px; font-size: 0.88rem; line-height: 1.55; }
+.chat-msg.user { background: var(--primary-gradient); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+.chat-msg.assistant { background: rgba(255,255,255,0.06); border: 1px solid var(--border-glass); align-self: flex-start; border-bottom-left-radius: 4px; }
+.chat-input-row { display: flex; gap: 10px; }
+.chat-input-row input { flex: 1; padding: 11px 16px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); color: var(--text-bright); font-size: 0.9rem; outline: none; }
+.chat-input-row input:focus { border-color: var(--primary); }
+.chat-send-btn { width: 42px; height: 42px; border-radius: var(--radius-sm); background: var(--primary-gradient); border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: opacity 0.2s; }
+.chat-send-btn:hover { opacity: 0.85; }
+
+/* ===== TOOL SPECIFIC ===== */
+.tool-section { margin-bottom: 16px; }
+.tool-section label { display: block; margin-bottom: 6px; font-size: 0.82rem; font-weight: 600; color: var(--text-muted); }
+.tool-section textarea, .tool-section input[type="text"], .tool-section input[type="number"], .tool-section input[type="color"] { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); color: var(--text-bright); font-size: 0.88rem; outline: none; resize: vertical; }
+.tool-section textarea:focus, .tool-section input:focus { border-color: var(--primary); }
+.tool-output { padding: 14px; background: rgba(0,0,0,0.3); border-radius: var(--radius-sm); font-family: monospace; font-size: 0.85rem; white-space: pre-wrap; word-break: break-all; min-height: 60px; color: var(--accent-blue); }
+.copy-btn { padding: 6px 14px; border-radius: 6px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-glass); color: var(--text-muted); cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.2s; margin-top: 8px; }
+.copy-btn:hover { background: rgba(255,94,0,0.1); border-color: var(--primary); color: var(--primary); }
+
+/* ===== LIVE CLASSES ===== */
+.live-classes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+.live-class-card { background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: var(--radius-md); overflow: hidden; }
+.live-class-thumb { height: 140px; display: flex; align-items: center; justify-content: center; position: relative; }
+.join-btn { padding: 10px 24px; border-radius: var(--radius-sm); background: var(--primary-gradient); border: none; color: #fff; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+.join-btn:hover { opacity: 0.9; }
+
+/* ===== TOASTS ===== */
+#toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.toast { padding: 12px 20px; border-radius: var(--radius-sm); background: var(--bg-card); border: 1px solid var(--border-glass); font-size: 0.88rem; font-weight: 600; display: flex; align-items: center; gap: 10px; animation: slideUp 0.3s ease; box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+.toast.success { border-left: 3px solid var(--accent-green); }
+.toast.error { border-left: 3px solid #ff4757; }
+.toast.info { border-left: 3px solid var(--accent-blue); }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+  .sidebar { width: 60px; }
+  .sidebar .sidebar-logo span, .sidebar .nav-item span, .sidebar-user .user-meta { display: none; }
+  .sidebar { padding: 16px 8px; }
+  .home-grid, .learning-grid, .profile-grid { grid-template-columns: 1fr; }
+  .terminal-layout { grid-template-columns: 1fr; height: auto; }
+  #monaco-editor { height: 300px; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader-overlay">
+  <svg class="loader-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#ff5e00" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+  <div class="loader-text">Initializing CodeLX Portal...</div>
+  <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+</div>
+
+<!-- PARTICLES -->
+<div id="particles-bg"></div>
+<div class="ambient-glow orange"></div>
+<div class="ambient-glow blue"></div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<!-- ======================== AUTH OVERLAY ======================== -->
+<div id="auth-overlay">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <h1>Code<span class="brand-accent">LX</span></h1>
+      <p style="color:var(--text-muted);font-size:0.88rem;margin-top:4px;">Student Learning Portal</p>
+    </div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchAuthTab('login')">Login</div>
+      <div class="auth-tab" onclick="switchAuthTab('register')">Register</div>
+    </div>
+
+    <!-- Login Form -->
+    <div class="auth-form" id="login-form">
+      <div class="input-group">
+        <label>Gmail / Login ID</label>
+        <input type="email" class="inp" id="login-email" placeholder="you@gmail.com" autocomplete="email">
+      </div>
+      <div class="input-group">
+        <label>Password</label>
+        <input type="password" class="inp" id="login-pass" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div id="login-error" class="auth-error">Invalid credentials. Please try again.</div>
+      <button class="btn-auth" onclick="handleLogin()">Sign In</button>
+      <p class="auth-divider">— Demo: use any email + password —</p>
+    </div>
+
+    <!-- Register Form -->
+    <div class="auth-form hidden" id="register-form">
+      <div class="input-group">
+        <label>Full Name</label>
+        <input type="text" class="inp" id="reg-name" placeholder="Your full name">
+      </div>
+      <div class="input-group">
+        <label>Gmail / Email</label>
+        <input type="email" class="inp" id="reg-email" placeholder="you@gmail.com">
+      </div>
+      <div class="input-group">
+        <label>Create Password</label>
+        <input type="password" class="inp" id="reg-pass" placeholder="Min 6 characters">
+      </div>
+      <div id="reg-error" class="auth-error"></div>
+      <button class="btn-auth" onclick="handleRegister()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== MAIN APP ======================== -->
+<div class="app-container" id="app" style="display:none;">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      <span>Code<span class="brand-accent">LX</span></span>
+    </div>
+
+    <nav>
+      <div class="nav-item active" onclick="switchView('home',this)" data-view="home">
+        <i data-lucide="home"></i><span>Home</span>
+      </div>
+      <div class="nav-item" onclick="switchView('workshops',this)" data-view="workshops">
+        <i data-lucide="users"></i><span>Free Workshops</span>
+      </div>
+      <div class="nav-item" onclick="switchView('terminal',this)" data-view="terminal">
+        <i data-lucide="terminal"></i><span>Terminal</span>
+      </div>
+      <div class="nav-item" onclick="switchView('notes',this)" data-view="notes">
+        <i data-lucide="book-open"></i><span>Notes</span>
+      </div>
+      <div class="nav-item" onclick="switchView('notifications',this)" data-view="notifications">
+        <i data-lucide="bell"></i><span>Notifications</span>
+        <span class="notif-badge" id="nav-notif-badge">3</span>
+      </div>
+      <div class="nav-item" onclick="switchView('mylearning',this)" data-view="mylearning">
+        <i data-lucide="bar-chart-2"></i><span>My Learning</span>
+      </div>
+      <div class="nav-item" onclick="switchView('assignments',this)" data-view="assignments">
+        <i data-lucide="file-check-2"></i><span>Assignments</span>
+      </div>
+      <div class="nav-item" onclick="switchView('tools',this)" data-view="tools">
+        <i data-lucide="layers"></i><span>Digital Tools</span>
+      </div>
+      <div class="nav-item" onclick="switchView('lectures',this)" data-view="lectures">
+        <i data-lucide="video"></i><span>Recorded Lectures</span>
+      </div>
+      <div class="nav-item" onclick="switchView('liveclasses',this)" data-view="liveclasses">
+        <i data-lucide="radio"></i><span>Live Classes</span>
+      </div>
+      <div class="nav-item" onclick="switchView('profile',this)" data-view="profile">
+        <i data-lucide="user"></i><span>Profile</span>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="switchView('profile')">
+        <div class="avatar" id="sidebar-avatar">S</div>
+        <div class="user-meta">
+          <h4 id="sidebar-name">Student</h4>
+          <p id="sidebar-email">email@codelx.com</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="search-wrap">
+        <i data-lucide="search"></i>
+        <input type="text" class="search-inp" id="global-search" placeholder="Search lectures, notes, tools..." oninput="handleSearch(this.value)">
+        <div class="search-results-overlay" id="search-results" style="display:none;"></div>
+      </div>
+      <div class="topbar-actions">
+        <div class="streak-chip">
+          <i data-lucide="flame" style="width:14px;height:14px;fill:var(--primary);color:var(--primary);"></i>
+          <span id="streak-display">0 Days</span>
+        </div>
+        <div class="icon-btn" onclick="switchView('notifications')" title="Notifications">
+          <i data-lucide="bell"></i>
+          <div class="badge-dot" id="topbar-notif-dot"></div>
+        </div>
+        <button class="btn-sm" onclick="handleLogout()">
+          <i data-lucide="log-out" style="width:15px;height:15px;"></i> Exit
+        </button>
+      </div>
+    </div>
+
+    <!-- ===== HOME ===== -->
+    <div class="view-panel active" id="view-home">
+      <div class="panel-header">
+        <h1>Welcome back, <span style="color:var(--primary);" id="welcome-name">Student</span>! 👋</h1>
+        <p>Track your progress, check assignments and review your daily statistics.</p>
+      </div>
+      <div class="home-grid">
+        <div>
+          <div class="stat-cards" id="home-stats"></div>
+          <div class="card" style="padding:22px;margin-bottom:16px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <h3 style="font-weight:700;font-size:1rem;display:flex;align-items:center;gap:8px;">
+                <i data-lucide="award" style="color:var(--primary);width:18px;height:18px;"></i> Course Progress
+              </h3>
+              <span style="font-size:0.8rem;color:var(--accent-blue);font-weight:700;" id="xp-display">0 XP</span>
+            </div>
+            <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:6px;display:flex;justify-content:space-between;">
+              <span>Overall Completion</span><span id="progress-txt">0%</span>
+            </div>
+            <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-bar" style="width:0%"></div></div>
+            <div class="badges-row" id="badges-row" style="margin-top:14px;"></div>
+          </div>
+          <div class="card" style="padding:22px;">
+            <h3 style="font-weight:700;font-size:1rem;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+              <i data-lucide="calendar" style="color:var(--accent-blue);width:18px;height:18px;"></i> Next Live Class
+            </h3>
+            <div id="next-live-class"></div>
+          </div>
+        </div>
+        <div>
+          <div class="card" style="padding:22px;margin-bottom:16px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <h3 style="font-weight:700;font-size:1rem;display:flex;align-items:center;gap:8px;">
+                <i data-lucide="megaphone" style="color:var(--accent-purple);width:18px;height:18px;"></i> Latest Bulletins
+              </h3>
+              <span style="font-size:0.8rem;color:var(--primary);cursor:pointer;" onclick="switchView('notifications')">See All</span>
+            </div>
+            <div id="bulletin-list"></div>
+          </div>
+          <div class="card" style="padding:22px;">
+            <h3 style="font-weight:700;font-size:1rem;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+              <i data-lucide="clipboard-list" style="color:#ffcc00;width:18px;height:18px;"></i> Assignment Status
+            </h3>
+            <div id="assign-status-brief"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== FREE WORKSHOPS ===== -->
+    <div class="view-panel" id="view-workshops">
+      <div class="panel-header">
+        <h1>Free Live Workshops</h1>
+        <p>Join interactive developer webinars. Click to register via Google Meet.</p>
+      </div>
+      <div class="workshops-grid" id="workshops-grid"></div>
+    </div>
+
+    <!-- ===== TERMINAL ===== -->
+    <div class="view-panel" id="view-terminal">
+      <div class="panel-header" style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h1>Monaco Compiler</h1>
+          <p>Write and run C, C++, Java, Python, HTML, CSS, JavaScript in the browser.</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <label style="font-size:0.85rem;color:var(--text-muted);font-weight:600;">Language:</label>
+          <select class="lang-select" id="lang-select" onchange="onLangChange()">
+            <option value="javascript">JavaScript</option>
+            <option value="html">HTML / CSS</option>
+            <option value="python">Python</option>
+            <option value="cpp">C++</option>
+            <option value="c">C</option>
+            <option value="java">Java</option>
+          </select>
+        </div>
+      </div>
+      <div class="terminal-layout">
+        <div class="editor-wrap">
+          <div class="editor-header">
+            <span style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:0.88rem;">
+              <div class="lang-dot"></div>
+              <span id="editor-filename">index.js</span>
+            </span>
+            <div style="display:flex;gap:8px;">
+              <button class="btn-sm" onclick="saveCode()"><i data-lucide="save" style="width:14px;height:14px;"></i> Save</button>
+              <button class="btn-primary" style="padding:8px 16px;font-size:0.85rem;" onclick="runCode()">
+                <i data-lucide="play" style="width:14px;height:14px;"></i> Run
+              </button>
+            </div>
+          </div>
+          <div id="monaco-editor" style="height:100%;min-height:300px;"></div>
+        </div>
+        <div class="console-wrap">
+          <div class="console-header">
+            <span style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:0.88rem;">
+              <i data-lucide="terminal" style="color:var(--accent-blue);width:16px;height:16px;"></i> Output
+            </span>
+            <button class="btn-sm" onclick="clearConsole()" style="padding:4px 10px;font-size:0.78rem;">Clear</button>
+          </div>
+          <div class="console-output" id="console-output">// CodeLX Terminal Ready. Select language and run code.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== NOTES ===== -->
+    <div class="view-panel" id="view-notes">
+      <div class="panel-header" style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+        <div>
+          <h1>Study Notes Archive</h1>
+          <p>PDF guides, programming handouts and cheat sheets uploaded by Admin.</p>
+        </div>
+        <div class="notes-search">
+          <i data-lucide="search"></i>
+          <input type="text" id="notes-search" placeholder="Search notes..." oninput="renderNotes()">
+        </div>
+      </div>
+      <div class="notes-grid" id="notes-grid"></div>
+    </div>
+
+    <!-- ===== NOTIFICATIONS ===== -->
+    <div class="view-panel" id="view-notifications">
+      <div class="panel-header">
+        <h1>Notifications</h1>
+        <p>Workshop alerts, assignment deadlines, live class updates, and new notes.</p>
+      </div>
+      <div class="notif-list" id="notif-list"></div>
+    </div>
+
+    <!-- ===== MY LEARNING ===== -->
+    <div class="view-panel" id="view-mylearning">
+      <div class="panel-header">
+        <h1>My Learning Dashboard</h1>
+        <p>Detailed activity tracking: logins, lectures watched, notes viewed, tools used.</p>
+      </div>
+      <div class="learning-grid">
+        <div>
+          <div class="card" style="padding:22px;margin-bottom:20px;">
+            <h3 style="font-weight:700;margin-bottom:16px;font-size:1rem;display:flex;align-items:center;gap:8px;">
+              <i data-lucide="activity" style="color:var(--accent-blue);width:18px;height:18px;"></i> Activity Overview
+            </h3>
+            <div class="activity-stats" id="learning-stats"></div>
+          </div>
+          <div class="card" style="padding:22px;">
+            <h3 style="font-weight:700;margin-bottom:16px;font-size:1rem;">Session Logs</h3>
+            <div id="session-logs" style="display:flex;flex-direction:column;gap:10px;max-height:280px;overflow-y:auto;"></div>
+          </div>
+        </div>
+        <div>
+          <div class="card" style="padding:22px;margin-bottom:20px;">
+            <h3 style="font-weight:700;margin-bottom:16px;font-size:1rem;display:flex;align-items:center;gap:8px;">
+              <i data-lucide="trending-up" style="color:var(--accent-green);width:18px;height:18px;"></i> Learning Progress by Topic
+            </h3>
+            <div id="topic-progress"></div>
+          </div>
+          <div class="card" style="padding:22px;">
+            <h3 style="font-weight:700;margin-bottom:16px;font-size:1rem;">Recent Activity</h3>
+            <div id="recent-activity" style="display:flex;flex-direction:column;gap:10px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ASSIGNMENTS ===== -->
+    <div class="view-panel" id="view-assignments">
+      <div class="panel-header">
+        <h1>My Assignments</h1>
+        <p>Track deadlines, submit work, and view teacher grading evaluations.</p>
+      </div>
+      <div class="assignments-list" id="assignments-list"></div>
+    </div>
+
+    <!-- ===== DIGITAL TOOLS ===== -->
+    <div class="view-panel" id="view-tools">
+      <div class="panel-header">
+        <h1>Digital Tools Hub</h1>
+        <p>50 premium interactive tools — AI, coding, design, PDF tools and more.</p>
+      </div>
+      <div class="tools-filter" id="tools-filter"></div>
+      <div class="tools-grid" id="tools-grid"></div>
+    </div>
+
+    <!-- ===== RECORDED LECTURES ===== -->
+    <div class="view-panel" id="view-lectures">
+      <div class="panel-header">
+        <h1>Recorded Lectures</h1>
+        <p>Watch on-demand lessons. Playback positions and completion are saved.</p>
+      </div>
+      <div class="cat-filter" id="lecture-filters"></div>
+      <div class="lectures-grid" id="lectures-grid"></div>
+    </div>
+
+    <!-- ===== LIVE CLASSES ===== -->
+    <div class="view-panel" id="view-liveclasses">
+      <div class="panel-header">
+        <h1>Live Classes</h1>
+        <p>Join scheduled live sessions directly from here.</p>
+      </div>
+      <div class="live-classes-grid" id="live-classes-grid"></div>
+    </div>
+
+    <!-- ===== PROFILE ===== -->
+    <div class="view-panel" id="view-profile">
+      <div class="panel-header">
+        <h1>My Profile</h1>
+        <p>Update your details, change password, and view your comprehensive activity logs.</p>
+      </div>
+      <div class="profile-grid">
+        <div>
+          <div class="profile-card" style="margin-bottom:20px;">
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;">
+              <div class="avatar avatar-lg" id="profile-avatar-big">S</div>
+              <div>
+                <h2 id="profile-display-name" style="font-size:1.3rem;font-weight:800;"></h2>
+                <p id="profile-display-email" style="color:var(--text-muted);font-size:0.85rem;margin-top:4px;"></p>
+                <span style="font-size:0.75rem;background:rgba(255,94,0,0.15);color:var(--primary);padding:3px 10px;border-radius:50px;font-weight:700;margin-top:6px;display:inline-block;">Student</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Full Name</label>
+              <input type="text" class="inp" id="p-name" placeholder="Your name">
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" class="inp" id="p-email" readonly style="opacity:0.6;cursor:not-allowed;">
+            </div>
+            <div class="form-group">
+              <label>New Password</label>
+              <input type="password" class="inp" id="p-pass" placeholder="Leave blank to keep current">
+            </div>
+            <button class="btn-primary" onclick="saveProfile()" style="width:100%;">
+              <i data-lucide="save" style="width:16px;height:16px;"></i> Save Changes
+            </button>
+          </div>
+        </div>
+        <div>
+          <div class="profile-card" style="margin-bottom:20px;">
+            <h3 style="font-weight:700;margin-bottom:16px;font-size:1rem;display:flex;align-items:center;gap:8px;">
+              <i data-lucide="zap" style="color:#ffcc00;width:18px;height:18px;"></i> Activity Statistics
+            </h3>
+            <div class="activity-stats" id="profile-stats"></div>
+          </div>
+          <div class="profile-card" style="max-height:320px;overflow-y:auto;">
+            <h3 style="font-weight:700;margin-bottom:16px;font-size:1rem;display:flex;align-items:center;gap:8px;">
+              <i data-lucide="clock" style="color:var(--accent-blue);width:18px;height:18px;"></i> Activity Logs
+            </h3>
+            <div id="activity-logs" style="display:flex;flex-direction:column;gap:10px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+</div><!-- /app-container -->
+
+<!-- ===== VIDEO PLAYER MODAL ===== -->
+<div class="modal-overlay" id="video-modal" onclick="if(event.target===this)closeVideoModal()">
+  <div class="modal-box lg" style="overflow:hidden;">
+    <div class="modal-header">
+      <h2><i data-lucide="play-circle" style="color:var(--primary);"></i> <span id="video-modal-title">Lesson</span></h2>
+      <div class="close-btn" onclick="closeVideoModal()"><i data-lucide="x"></i></div>
+    </div>
+    <div style="padding:0;">
+      <video id="lecture-video" controls style="width:100%;background:#000;display:block;" ontimeupdate="saveVideoPos()"></video>
+    </div>
+    <div style="padding:20px;">
+      <p id="video-modal-desc" style="color:var(--text-muted);font-size:0.9rem;"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TOOL MODAL ===== -->
+<div class="modal-overlay" id="tool-modal" onclick="if(event.target===this)closeToolModal()">
+  <div class="modal-box md">
+    <div class="modal-header">
+      <h2 id="tool-modal-title"><i data-lucide="layers" style="color:var(--primary);"></i> Tool</h2>
+      <div class="close-btn" onclick="closeToolModal()"><i data-lucide="x"></i></div>
+    </div>
+    <div class="modal-body" id="tool-modal-body"></div>
+  </div>
+</div>
+
+<!-- ===== NOTIFICATIONS MODAL (topbar bell) ===== -->
+<div class="modal-overlay" id="notif-modal" onclick="if(event.target===this)closeNotifModal()">
+  <div class="modal-box sm">
+    <div class="modal-header">
+      <h2><i data-lucide="bell" style="color:var(--primary);"></i> Notifications</h2>
+      <div class="close-btn" onclick="closeNotifModal()"><i data-lucide="x"></i></div>
+    </div>
+    <div class="modal-body" id="notif-modal-body" style="max-height:400px;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA STORE (localStorage-based)
+// ============================================================
+const DB = {
+  get(k) { try { return JSON.parse(localStorage.getItem('clx_' + k)); } catch { return null; } },
+  set(k, v) { localStorage.setItem('clx_' + k, JSON.stringify(v)); },
+  del(k) { localStorage.removeItem('clx_' + k); }
+};
+
+// ============================================================
+// MOCK DATA
+// ============================================================
+const MOCK = {
+  lectures: [
+    { id: 1, title: 'Introduction to Python Programming', desc: 'Variables, data types, loops, and functions.', category: 'Python', duration: '45 min', thumb: '🐍' },
+    { id: 2, title: 'JavaScript ES6+ Deep Dive', desc: 'Arrow functions, promises, async/await and more.', category: 'JavaScript', duration: '60 min', thumb: '⚡' },
+    { id: 3, title: 'Data Structures in C++', desc: 'Arrays, linked lists, stacks, queues and trees.', category: 'C++', duration: '90 min', thumb: '🔧' },
+    { id: 4, title: 'HTML & CSS Mastery', desc: 'Flexbox, Grid, animations and responsive design.', category: 'Web', duration: '55 min', thumb: '🎨' },
+    { id: 5, title: 'Java OOP Concepts', desc: 'Classes, inheritance, polymorphism and encapsulation.', category: 'Java', duration: '70 min', thumb: '☕' },
+    { id: 6, title: 'React.js Fundamentals', desc: 'Components, hooks, state management and routing.', category: 'JavaScript', duration: '80 min', thumb: '⚛️' },
+    { id: 7, title: 'Database Design with SQL', desc: 'Tables, queries, joins, and normalization.', category: 'Database', duration: '65 min', thumb: '🗄️' },
+    { id: 8, title: 'Git & GitHub for Developers', desc: 'Version control, branching, pull requests.', category: 'Tools', duration: '40 min', thumb: '🌿' },
+  ],
+  workshops: [
+    { id: 1, title: 'Full Stack Web Dev Bootcamp', date: 'June 5, 2025', time: '6:00 PM IST', status: 'upcoming', host: 'Rahul Sharma', spots: 45, link: '#' },
+    { id: 2, title: 'AI & Machine Learning Intro', date: 'May 28, 2025', time: '7:00 PM IST', status: 'live', host: 'Priya Patel', spots: 12, link: '#' },
+    { id: 3, title: 'DSA for Placements', date: 'June 12, 2025', time: '5:00 PM IST', status: 'upcoming', host: 'Amit Kumar', spots: 80, link: '#' },
+    { id: 4, title: 'System Design Masterclass', date: 'June 20, 2025', time: '8:00 PM IST', status: 'upcoming', host: 'Neha Singh', spots: 30, link: '#' },
+  ],
+  notes: [
+    { id: 1, title: 'Python Cheat Sheet', desc: 'Quick reference for Python syntax and built-ins.', type: 'PDF', size: '2.4 MB', icon: '📄', color: 'rgba(59,130,246,0.15)' },
+    { id: 2, title: 'JavaScript ES6+ Guide', desc: 'All modern JS features explained with examples.', type: 'PDF', size: '3.1 MB', icon: '📘', color: 'rgba(234,179,8,0.15)' },
+    { id: 3, title: 'DSA Handout - Arrays', desc: 'Array problems, techniques, and patterns.', type: 'PDF', size: '1.8 MB', icon: '📐', color: 'rgba(168,85,247,0.15)' },
+    { id: 4, title: 'HTML/CSS Reference', desc: 'Complete CSS properties and HTML elements.', type: 'PDF', size: '4.0 MB', icon: '🎨', color: 'rgba(34,197,94,0.15)' },
+    { id: 5, title: 'Java OOP Handout', desc: 'Inheritance, polymorphism, encapsulation notes.', type: 'PDF', size: '2.7 MB', icon: '☕', color: 'rgba(249,115,22,0.15)' },
+    { id: 6, title: 'SQL Quick Reference', desc: 'All SQL clauses, functions, and join types.', type: 'PDF', size: '1.5 MB', icon: '🗄️', color: 'rgba(20,184,166,0.15)' },
+  ],
+  assignments: [
+    { id: 1, title: 'Build a Calculator in Python', subject: 'Python', deadline: 'June 1, 2025', status: 'pending', marks: null, total: 20 },
+    { id: 2, title: 'Create a Responsive Portfolio Website', subject: 'Web Dev', deadline: 'May 30, 2025', status: 'completed', marks: 18, total: 20 },
+    { id: 3, title: 'Implement Linked List in C++', subject: 'C++', deadline: 'May 20, 2025', status: 'overdue', marks: null, total: 30 },
+    { id: 4, title: 'Design a Library Management System', subject: 'Java', deadline: 'June 15, 2025', status: 'pending', marks: null, total: 25 },
+    { id: 5, title: 'SQL Query Practice Set', subject: 'Database', deadline: 'June 8, 2025', status: 'pending', marks: null, total: 15 },
+  ],
+  notifications: [
+    { id: 1, type: 'workshop', title: 'New Workshop: Full Stack Bootcamp', body: 'A new free workshop on Full Stack development has been scheduled for June 5th at 6 PM.', time: '2h ago', read: false, icon: '🎓' },
+    { id: 2, type: 'assignment', title: 'Assignment Due Tomorrow', body: 'Your Python Calculator assignment is due on June 1st. Submit before midnight!', time: '5h ago', read: false, icon: '📋' },
+    { id: 3, type: 'notes', title: 'New Notes Added: SQL Reference', body: 'Admin has uploaded a new SQL Quick Reference PDF to the notes section.', time: '1d ago', read: false, icon: '📄' },
+    { id: 4, type: 'live', title: 'Live Class Starting in 30 Minutes', body: 'AI & ML Introduction live class starts at 7:00 PM. Click to join Google Meet.', time: '30m ago', read: true, icon: '📡' },
+    { id: 5, type: 'workshop', title: 'Workshop Recording Available', body: 'The recording of last week\'s DSA workshop is now available in Recorded Lectures.', time: '2d ago', read: true, icon: '🎬' },
+  ],
+  liveClasses: [
+    { id: 1, title: 'AI & ML Live Session', instructor: 'Priya Patel', time: 'Today 7:00 PM', status: 'live', link: '#', color: 'linear-gradient(135deg,#1a1b2e,#0d1520)', accent: '#22c55e' },
+    { id: 2, title: 'Python Advanced Concepts', instructor: 'Rahul Sharma', time: 'June 3, 6:00 PM', status: 'upcoming', link: '#', color: 'linear-gradient(135deg,#0d1a1a,#0d200d)', accent: '#3b82f6' },
+    { id: 3, title: 'JavaScript Interview Prep', instructor: 'Amit Kumar', time: 'June 7, 5:00 PM', status: 'upcoming', link: '#', color: 'linear-gradient(135deg,#1a1200,#1a0d00)', accent: '#eab308' },
+  ],
+  tools: [
+    { id: 1, name: 'AI Chat Assistant', emoji: '🤖', desc: 'Ask anything to AI', cat: 'AI', action: 'ai-chat' },
+    { id: 2, name: 'JSON Formatter', emoji: '🔧', desc: 'Format & validate JSON', cat: 'Coding', action: 'json-formatter' },
+    { id: 3, name: 'Color Picker', emoji: '🎨', desc: 'Pick & convert colors', cat: 'Design', action: 'color-picker' },
+    { id: 4, name: 'QR Generator', emoji: '📱', desc: 'Generate QR codes', cat: 'Utility', action: 'qr-generator' },
+    { id: 5, name: 'Resume Builder', emoji: '📄', desc: 'Build your resume', cat: 'Career', action: 'resume-builder' },
+    { id: 6, name: 'Image Generator', emoji: '🖼️', desc: 'AI image prompts', cat: 'AI', action: 'image-gen' },
+    { id: 7, name: 'PDF Merger', emoji: '📚', desc: 'Merge PDF files', cat: 'PDF', action: 'pdf-merger' },
+    { id: 8, name: 'Code Formatter', emoji: '💻', desc: 'Format any code', cat: 'Coding', action: 'code-formatter' },
+    { id: 9, name: 'CSS Gradient', emoji: '🌈', desc: 'Build CSS gradients', cat: 'Design', action: 'css-gradient' },
+    { id: 10, name: 'Markdown Editor', emoji: '📝', desc: 'Live markdown preview', cat: 'Coding', action: 'markdown' },
+    { id: 11, name: 'Base64 Encoder', emoji: '🔐', desc: 'Encode/decode base64', cat: 'Coding', action: 'base64' },
+    { id: 12, name: 'Word Counter', emoji: '📊', desc: 'Count words & chars', cat: 'Utility', action: 'word-counter' },
+    { id: 13, name: 'Regex Tester', emoji: '🔍', desc: 'Test regex patterns', cat: 'Coding', action: 'regex' },
+    { id: 14, name: 'Password Generator', emoji: '🔑', desc: 'Generate secure passwords', cat: 'Utility', action: 'password-gen' },
+    { id: 15, name: 'Unit Converter', emoji: '⚖️', desc: 'Convert any units', cat: 'Utility', action: 'unit-converter' },
+    { id: 16, name: 'Lorem Generator', emoji: '📋', desc: 'Generate placeholder text', cat: 'Coding', action: 'lorem' },
+    { id: 17, name: 'Hash Generator', emoji: '🔒', desc: 'Generate MD5/SHA hashes', cat: 'Coding', action: 'hash' },
+    { id: 18, name: 'Timeline Builder', emoji: '📅', desc: 'Build visual timelines', cat: 'Career', action: 'timeline' },
+    { id: 19, name: 'Mind Map Tool', emoji: '🧠', desc: 'Visual mind mapping', cat: 'AI', action: 'mindmap' },
+    { id: 20, name: 'Font Pairer', emoji: '🔤', desc: 'Pair fonts beautifully', cat: 'Design', action: 'font-pairer' },
+    { id: 21, name: 'Diff Checker', emoji: '🆚', desc: 'Compare two texts', cat: 'Coding', action: 'diff-checker' },
+    { id: 22, name: 'URL Shortener', emoji: '🔗', desc: 'Shorten long URLs', cat: 'Utility', action: 'url-shortener' },
+    { id: 23, name: 'Invoice Generator', emoji: '🧾', desc: 'Create professional invoices', cat: 'Career', action: 'invoice' },
+    { id: 24, name: 'Pomodoro Timer', emoji: '⏱️', desc: 'Focus with Pomodoro', cat: 'Utility', action: 'pomodoro' },
+    { id: 25, name: 'SQL Formatter', emoji: '🗄️', desc: 'Format SQL queries', cat: 'Coding', action: 'sql-formatter' },
+    { id: 26, name: 'Image Compressor', emoji: '🗜️', desc: 'Compress image size', cat: 'Design', action: 'img-compress' },
+    { id: 27, name: 'CSV to JSON', emoji: '🔄', desc: 'Convert CSV to JSON', cat: 'Coding', action: 'csv-json' },
+    { id: 28, name: 'Emoji Finder', emoji: '😊', desc: 'Search all emojis', cat: 'Utility', action: 'emoji-finder' },
+    { id: 29, name: 'Portfolio Builder', emoji: '🏗️', desc: 'Build dev portfolio', cat: 'Career', action: 'portfolio' },
+    { id: 30, name: 'API Tester', emoji: '📡', desc: 'Test REST APIs', cat: 'Coding', action: 'api-tester' },
+    { id: 31, name: 'Budget Planner', emoji: '💰', desc: 'Track your budget', cat: 'Utility', action: 'budget' },
+    { id: 32, name: 'GitHub README Gen', emoji: '🐙', desc: 'Generate README.md', cat: 'Coding', action: 'readme-gen' },
+    { id: 33, name: 'Interview Q Bank', emoji: '💡', desc: 'Practice interview Q&A', cat: 'Career', action: 'interview-q' },
+    { id: 34, name: 'Hex to RGB', emoji: '🔵', desc: 'Convert color formats', cat: 'Design', action: 'hex-rgb' },
+    { id: 35, name: 'Pixel Art Maker', emoji: '🟦', desc: 'Create pixel art', cat: 'Design', action: 'pixel-art' },
+    { id: 36, name: 'JWT Decoder', emoji: '🗝️', desc: 'Decode JWT tokens', cat: 'Coding', action: 'jwt' },
+    { id: 37, name: 'Cron Builder', emoji: '⏰', desc: 'Visual cron expression', cat: 'Coding', action: 'cron' },
+    { id: 38, name: 'Text Summarizer', emoji: '📰', desc: 'AI text summarization', cat: 'AI', action: 'summarizer' },
+    { id: 39, name: 'Code Explainer', emoji: '🧑‍🏫', desc: 'Explain code in plain English', cat: 'AI', action: 'code-explain' },
+    { id: 40, name: 'Cover Letter Gen', emoji: '✉️', desc: 'AI cover letter writer', cat: 'Career', action: 'cover-letter' },
+    { id: 41, name: 'Math Solver', emoji: '🔢', desc: 'Solve math problems', cat: 'AI', action: 'math-solver' },
+    { id: 42, name: 'CSS Minifier', emoji: '📦', desc: 'Minify CSS code', cat: 'Coding', action: 'css-minifier' },
+    { id: 43, name: 'JS Minifier', emoji: '📦', desc: 'Minify JavaScript', cat: 'Coding', action: 'js-minifier' },
+    { id: 44, name: 'Kanban Board', emoji: '📌', desc: 'Visual task board', cat: 'Utility', action: 'kanban' },
+    { id: 45, name: 'Expense Tracker', emoji: '📈', desc: 'Track daily expenses', cat: 'Utility', action: 'expense' },
+    { id: 46, name: 'Flashcard Maker', emoji: '🃏', desc: 'Study with flashcards', cat: 'AI', action: 'flashcards' },
+    { id: 47, name: 'Palindrome Checker', emoji: '🔁', desc: 'Check palindromes', cat: 'Coding', action: 'palindrome' },
+    { id: 48, name: 'Gradient Text Tool', emoji: '✨', desc: 'Generate gradient text CSS', cat: 'Design', action: 'gradient-text' },
+    { id: 49, name: 'Typing Speed Test', emoji: '⌨️', desc: 'Test your typing speed', cat: 'Utility', action: 'typing-test' },
+    { id: 50, name: 'Study Planner', emoji: '🗓️', desc: 'AI-powered study plans', cat: 'AI', action: 'study-planner' },
+  ]
+};
+
+// ============================================================
+// AUTH SYSTEM
+// ============================================================
+let currentUser = null;
+
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => {
+    t.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='register'));
+  });
+  document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
+  document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
+}
+
+function handleLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  if (!email || !pass) { errEl.classList.add('show'); errEl.textContent='Please fill in all fields.'; return; }
+  const users = DB.get('users') || [];
+  const found = users.find(u => u.email === email && u.password === pass);
+  // Allow demo login with any credentials if no existing user found
+  if (!found && users.length > 0 && !users.find(u => u.email === email)) {
+    errEl.classList.add('show'); errEl.textContent = 'Account not found. Please register.'; return;
+  }
+  const user = found || { name: email.split('@')[0], email, password: pass, createdAt: new Date().toISOString() };
+  if (!found) { users.push(user); DB.set('users', users); }
+  loginUser(user);
+  errEl.classList.remove('show');
+}
+
+function handleRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  const errEl = document.getElementById('reg-error');
+  if (!name || !email || !pass) { errEl.classList.add('show'); errEl.textContent='Please fill all fields.'; return; }
+  if (pass.length < 6) { errEl.classList.add('show'); errEl.textContent='Password must be 6+ characters.'; return; }
+  const users = DB.get('users') || [];
+  if (users.find(u => u.email === email)) { errEl.classList.add('show'); errEl.textContent='Email already registered.'; return; }
+  const user = { name, email, password: pass, createdAt: new Date().toISOString() };
+  users.push(user); DB.set('users', users);
+  loginUser(user);
+  errEl.classList.remove('show');
+}
+
+function loginUser(user) {
+  currentUser = user;
+  DB.set('session', user);
+  // Log activity
+  logActivity('login', 'Logged in to portal');
+  updateStreak();
+  document.getElementById('auth-overlay').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  initApp();
+}
+
+function handleLogout() {
+  logActivity('logout', 'Logged out of portal');
+  DB.del('session');
+  currentUser = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('auth-overlay').style.display = 'flex';
+  showToast('Signed out successfully.', 'info');
+}
+
+// ============================================================
+// ACTIVITY TRACKING
+// ============================================================
+function logActivity(type, desc) {
+  if (!currentUser) return;
+  const logs = DB.get('actlogs_' + currentUser.email) || [];
+  logs.unshift({ type, desc, time: new Date().toISOString() });
+  if (logs.length > 100) logs.pop();
+  DB.set('actlogs_' + currentUser.email, logs);
+  updateActivityStats(type);
+}
+
+function updateActivityStats(type) {
+  if (!currentUser) return;
+  const stats = DB.get('actstats_' + currentUser.email) || {
+    logins: 0, notesViewed: 0, lecturesWatched: 0, assignmentsCompleted: 0,
+    assignmentsPending: 0, toolsUsed: 0, codingActivity: 0, pageVisits: 0,
+    activeDuration: 0, totalXP: 0
+  };
+  if (type === 'login') stats.logins++;
+  if (type === 'note') stats.notesViewed++;
+  if (type === 'lecture') stats.lecturesWatched++;
+  if (type === 'assignment_complete') { stats.assignmentsCompleted++; stats.totalXP += 20; }
+  if (type === 'tool') stats.toolsUsed++;
+  if (type === 'code') { stats.codingActivity++; stats.totalXP += 5; }
+  if (type === 'page') stats.pageVisits++;
+  DB.set('actstats_' + currentUser.email, stats);
+}
+
+function getStats() {
+  return DB.get('actstats_' + currentUser.email) || {
+    logins:0,notesViewed:0,lecturesWatched:0,assignmentsCompleted:0,
+    assignmentsPending:0,toolsUsed:0,codingActivity:0,pageVisits:0,activeDuration:0,totalXP:0
+  };
+}
+
+function updateStreak() {
+  if (!currentUser) return;
+  const key = 'streak_' + currentUser.email;
+  const streak = DB.get(key) || { count: 0, lastDate: null };
+  const today = new Date().toDateString();
+  if (streak.lastDate !== today) {
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+    streak.count = (streak.lastDate === yesterday.toDateString()) ? streak.count + 1 : 1;
+    streak.lastDate = today;
+    DB.set(key, streak);
+  }
+  document.getElementById('streak-display').textContent = streak.count + ' Day' + (streak.count !== 1 ? 's' : '');
+}
+
+// ============================================================
+// VIEW SWITCHING
+// ============================================================
+function switchView(view, el) {
+  document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const panel = document.getElementById('view-' + view);
+  if (panel) panel.classList.add('active');
+  if (el) el.classList.add('active');
+  else {
+    const navEl = document.querySelector(`[data-view="${view}"]`);
+    if (navEl) navEl.classList.add('active');
+  }
+  logActivity('page', 'Visited ' + view);
+  if (view === 'profile') renderProfile();
+  if (view === 'mylearning') renderMyLearning();
+  if (view === 'notifications') { renderNotifications(); markNotifsRead(); }
+}
+
+// ============================================================
+// APP INIT
+// ============================================================
+function initApp() {
+  lucide.createIcons();
+  // Set user info in UI
+  const name = currentUser.name;
+  const initials = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('welcome-name').textContent = name.split(' ')[0];
+  document.getElementById('sidebar-name').textContent = name;
+  document.getElementById('sidebar-email').textContent = currentUser.email;
+  document.getElementById('sidebar-avatar').textContent = initials;
+  renderHome();
+  renderWorkshops();
+  renderLectures();
+  renderNotes();
+  renderNotifications();
+  renderAssignments();
+  renderTools();
+  renderLiveClasses();
+  initMonaco();
+}
+
+// ============================================================
+// HOME
+// ============================================================
+function renderHome() {
+  const stats = getStats();
+  const assignments = MOCK.assignments;
+  const pending = assignments.filter(a=>a.status==='pending').length;
+  const completed = assignments.filter(a=>a.status==='completed').length;
+  const progress = Math.round((completed / assignments.length) * 100);
+
+  document.getElementById('progress-bar').style.width = progress + '%';
+  document.getElementById('progress-txt').textContent = progress + '%';
+  document.getElementById('xp-display').textContent = (stats.totalXP || 0) + ' XP';
+
+  // Stat cards
+  const homeStats = document.getElementById('home-stats');
+  const statData = [
+    { icon: '📚', num: MOCK.lectures.length, label: 'Total Lectures', color: 'rgba(59,130,246,0.15)', border: '#3b82f6' },
+    { icon: '✅', num: completed, label: 'Assignments Done', color: 'rgba(34,197,94,0.15)', border: '#22c55e' },
+    { icon: '⏳', num: pending, label: 'Pending Tasks', color: 'rgba(255,204,0,0.15)', border: '#ffcc00' },
+    { icon: '🔥', num: (DB.get('streak_'+currentUser.email)||{count:0}).count, label: 'Day Streak', color: 'rgba(255,94,0,0.15)', border: 'var(--primary)' },
+  ];
+  homeStats.innerHTML = statData.map(s => `
+    <div class="stat-card" style="border-left:3px solid ${s.border};">
+      <div class="stat-icon" style="background:${s.color};font-size:1.3rem;">${s.icon}</div>
+      <div class="stat-num">${s.num}</div>
+      <div class="stat-label">${s.label}</div>
+    </div>
+  `).join('');
+
+  // Badges
+  const badges = [];
+  if (completed >= 1) badges.push({e:'🏅',n:'First Assignment'});
+  if (stats.lecturesWatched >= 1) badges.push({e:'🎬',n:'First Lecture'});
+  if (stats.toolsUsed >= 1) badges.push({e:'🔧',n:'Tool Explorer'});
+  if ((DB.get('streak_'+currentUser.email)||{count:0}).count >= 3) badges.push({e:'🔥',n:'3-Day Streak'});
+  if (stats.codingActivity >= 5) badges.push({e:'💻',n:'Coder'});
+  document.getElementById('badges-row').innerHTML = badges.length
+    ? badges.map(b=>`<span class="badge-item" title="${b.n}">${b.e}</span>`).join('')
+    : '<span style="color:var(--text-muted);font-size:0.8rem;">Complete activities to unlock badges!</span>';
+
+  // Next live class
+  const next = MOCK.liveClasses.find(c=>c.status==='live') || MOCK.liveClasses[0];
+  document.getElementById('next-live-class').innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div style="flex:1;">
+        <h4 style="font-weight:700;margin-bottom:4px;">${next.title}</h4>
+        <p style="font-size:0.82rem;color:var(--text-muted);">by ${next.instructor} · ${next.time}</p>
+      </div>
+      ${next.status==='live' ? `<span class="live-badge"><span class="live-dot"></span>LIVE</span>` : `<span style="font-size:0.78rem;color:var(--accent-blue);">Upcoming</span>`}
+    </div>
+    <a href="${next.link}" class="btn-primary" style="width:100%;justify-content:center;margin-top:14px;text-decoration:none;" onclick="showToast('Opening live class...','info')">Join Class</a>
+  `;
+
+  // Bulletins
+  document.getElementById('bulletin-list').innerHTML = MOCK.notifications.slice(0,3).map(n=>`
+    <div class="bulletin-item">
+      <span style="font-size:1.2rem;">${n.icon}</span>
+      <div>
+        <div style="font-weight:600;font-size:0.88rem;margin-bottom:2px;">${n.title}</div>
+        <div style="font-size:0.78rem;color:var(--text-muted);">${n.time}</div>
+      </div>
+    </div>
+  `).join('');
+
+  // Assignment status brief
+  document.getElementById('assign-status-brief').innerHTML = `
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:80px;text-align:center;padding:14px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:var(--radius-sm);">
+        <div style="font-size:1.8rem;font-weight:800;color:#22c55e;">${completed}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">Completed</div>
+      </div>
+      <div style="flex:1;min-width:80px;text-align:center;padding:14px;background:rgba(255,204,0,0.08);border:1px solid rgba(255,204,0,0.2);border-radius:var(--radius-sm);">
+        <div style="font-size:1.8rem;font-weight:800;color:#ffcc00;">${pending}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">Pending</div>
+      </div>
+      <div style="flex:1;min-width:80px;text-align:center;padding:14px;background:rgba(255,71,87,0.08);border:1px solid rgba(255,71,87,0.2);border-radius:var(--radius-sm);">
+        <div style="font-size:1.8rem;font-weight:800;color:#ff4757;">${MOCK.assignments.filter(a=>a.status==='overdue').length}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">Overdue</div>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// WORKSHOPS
+// ============================================================
+function renderWorkshops() {
+  const g = document.getElementById('workshops-grid');
+  g.innerHTML = MOCK.workshops.map(w => `
+    <div class="workshop-card ${w.status}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;">
+        <div>
+          ${w.status==='live' ? '<span class="live-badge"><span class="live-dot"></span> LIVE NOW</span>' :
+            '<span style="font-size:0.75rem;background:rgba(59,130,246,0.15);color:#74b9ff;padding:3px 10px;border-radius:50px;font-weight:700;">Upcoming</span>'}
+        </div>
+        <span style="font-size:0.78rem;color:var(--text-muted);">${w.spots} spots</span>
+      </div>
+      <h3 style="font-weight:700;font-size:1rem;margin-bottom:6px;">${w.title}</h3>
+      <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">by ${w.host}</p>
+      <p style="font-size:0.82rem;color:var(--accent-blue);margin-bottom:16px;">${w.date} · ${w.time}</p>
+      <a href="${w.link}" class="btn-primary" style="text-decoration:none;width:100%;justify-content:center;display:flex;" onclick="logActivity('workshop','Registered for '+\`${w.title}\`);showToast('Workshop link opened!','success')">
+        <i data-lucide="external-link" style="width:15px;height:15px;"></i>
+        ${w.status==='live' ? 'Join Now' : 'Register Free'}
+      </a>
+    </div>
+  `).join('');
+  lucide.createIcons();
+}
+
+// ============================================================
+// LECTURES
+// ============================================================
+let lectureCategory = 'All';
+function renderLectures() {
+  const cats = ['All', ...new Set(MOCK.lectures.map(l=>l.category))];
+  document.getElementById('lecture-filters').innerHTML = cats.map(c=>`
+    <button class="cat-btn ${c===lectureCategory?'active':''}" onclick="setLectureCat('${c}')">${c}</button>
+  `).join('');
+  const filtered = lectureCategory === 'All' ? MOCK.lectures : MOCK.lectures.filter(l=>l.category===lectureCategory);
+  const watchData = DB.get('watchdata_'+currentUser.email) || {};
+  document.getElementById('lectures-grid').innerHTML = filtered.map(l => {
+    const wd = watchData[l.id] || { progress: 0 };
+    return `
+      <div class="lecture-card" onclick="openVideoModal(${l.id})">
+        <div class="lecture-thumb">
+          <span style="font-size:3rem;position:absolute;">${l.thumb}</span>
+          <div class="play-icon" style="position:relative;z-index:1;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </div>
+          <div class="lecture-progress"><div class="lecture-progress-fill" style="width:${wd.progress}%"></div></div>
+        </div>
+        <div class="lecture-body">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+            <span style="font-size:0.72rem;background:rgba(255,94,0,0.15);color:var(--primary);padding:2px 8px;border-radius:50px;font-weight:700;">${l.category}</span>
+            ${wd.progress > 0 ? `<span style="font-size:0.72rem;color:var(--text-muted);">${wd.progress}% done</span>` : ''}
+          </div>
+          <h3>${l.title}</h3>
+          <p style="font-size:0.78rem;color:var(--text-muted);margin-top:4px;">${l.desc}</p>
+          <div class="lecture-meta" style="margin-top:10px;">
+            <span>⏱️ ${l.duration}</span>
+            ${wd.progress===100?'<span style="color:var(--accent-green);">✓ Completed</span>':''}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+function setLectureCat(cat) { lectureCategory = cat; renderLectures(); }
+
+let currentLectureId = null;
+function openVideoModal(id) {
+  const l = MOCK.lectures.find(x=>x.id===id);
+  if (!l) return;
+  currentLectureId = id;
+  document.getElementById('video-modal-title').textContent = l.title;
+  document.getElementById('video-modal-desc').textContent = l.desc;
+  // Use a sample video
+  const video = document.getElementById('lecture-video');
+  video.src = '';
+  openModal('video-modal');
+  logActivity('lecture', 'Watched: ' + l.title);
+  showToast('Loading: ' + l.title, 'info');
+  // Update progress to simulate
+  const watchData = DB.get('watchdata_'+currentUser.email) || {};
+  if (!watchData[id]) watchData[id] = { progress: 0 };
+  watchData[id].progress = Math.min(100, watchData[id].progress + 15);
+  DB.set('watchdata_'+currentUser.email, watchData);
+  renderLectures();
+}
+function closeVideoModal() { closeModal('video-modal'); document.getElementById('lecture-video').src=''; }
+function saveVideoPos() {}
+
+// ============================================================
+// NOTES
+// ============================================================
+function renderNotes() {
+  const q = (document.getElementById('notes-search')||{}).value||'';
+  const filtered = MOCK.notes.filter(n=> n.title.toLowerCase().includes(q.toLowerCase()) || n.desc.toLowerCase().includes(q.toLowerCase()));
+  document.getElementById('notes-grid').innerHTML = filtered.map(n => `
+    <div class="note-card" onclick="logActivity('note','Viewed: ${n.title}')">
+      <div class="note-icon" style="background:${n.color};">${n.icon}</div>
+      <h3>${n.title}</h3>
+      <p>${n.desc}</p>
+      <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:12px;">${n.type} · ${n.size}</div>
+      <div class="note-actions">
+        <button class="note-btn" onclick="event.stopPropagation();showToast('Opening PDF preview...','info');logActivity('note','Opened: ${n.title}')">📖 Open</button>
+        <button class="note-btn" onclick="event.stopPropagation();showToast('Downloading ${n.title}...','success');logActivity('note','Downloaded: ${n.title}')">⬇️ Download</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+function renderNotifications() {
+  const typeColors = { workshop:'rgba(168,85,247,0.15)', assignment:'rgba(255,204,0,0.15)', notes:'rgba(59,130,246,0.15)', live:'rgba(34,197,94,0.15)' };
+  const list = document.getElementById('notif-list');
+  if (!list) return;
+  list.innerHTML = MOCK.notifications.map(n => `
+    <div class="notif-item ${n.read?'':'unread'}">
+      <div class="notif-icon" style="background:${typeColors[n.type]||'rgba(255,255,255,0.05)'};">${n.icon}</div>
+      <div class="notif-body">
+        <h4>${n.title}</h4>
+        <p>${n.body}</p>
+        <div class="notif-time">${n.time}</div>
+      </div>
+    </div>
+  `).join('');
+  const unread = MOCK.notifications.filter(n=>!n.read).length;
+  document.getElementById('nav-notif-badge').textContent = unread;
+  document.getElementById('nav-notif-badge').style.display = unread > 0 ? 'inline' : 'none';
+  document.getElementById('topbar-notif-dot').style.display = unread > 0 ? 'block' : 'none';
+}
+
+function markNotifsRead() {
+  MOCK.notifications.forEach(n => n.read = true);
+  document.getElementById('nav-notif-badge').style.display = 'none';
+  document.getElementById('topbar-notif-dot').style.display = 'none';
+}
+
+// ============================================================
+// ASSIGNMENTS
+// ============================================================
+function renderAssignments() {
+  document.getElementById('assignments-list').innerHTML = MOCK.assignments.map(a => `
+    <div class="assign-card ${a.status}">
+      <div class="assign-header">
+        <div>
+          <h3>${a.title}</h3>
+          <p style="font-size:0.82rem;color:var(--text-muted);margin-top:4px;">${a.subject} · Due: ${a.deadline} · ${a.total} marks</p>
+        </div>
+        <span class="status-chip ${a.status}">${a.status.charAt(0).toUpperCase()+a.status.slice(1)}</span>
+      </div>
+      ${a.marks !== null ? `<p style="font-size:0.85rem;margin-bottom:12px;color:var(--accent-green);">Score: ${a.marks}/${a.total}</p>` : ''}
+      ${a.status !== 'completed' ? `
+        <div style="display:flex;gap:10px;margin-top:10px;">
+          <button class="btn-primary" style="padding:8px 16px;font-size:0.82rem;" onclick="showToast('Submit feature coming soon!','info')">
+            <i data-lucide="upload" style="width:14px;height:14px;"></i> Submit Work
+          </button>
+        </div>
+      ` : '<p style="font-size:0.8rem;color:var(--accent-green);">✓ Submitted and graded</p>'}
+    </div>
+  `).join('');
+  lucide.createIcons();
+}
+
+// ============================================================
+// DIGITAL TOOLS
+// ============================================================
+let toolCat = 'All';
+function renderTools() {
+  const cats = ['All', ...new Set(MOCK.tools.map(t=>t.cat))];
+  document.getElementById('tools-filter').innerHTML = cats.map(c=>`
+    <button class="cat-btn ${c===toolCat?'active':''}" onclick="setToolCat('${c}')">${c}</button>
+  `).join('');
+  const filtered = toolCat==='All' ? MOCK.tools : MOCK.tools.filter(t=>t.cat===toolCat);
+  const catColors = { AI:'rgba(168,85,247,0.15)', Coding:'rgba(59,130,246,0.15)', Design:'rgba(236,72,153,0.15)', Utility:'rgba(34,197,94,0.15)', PDF:'rgba(255,71,87,0.15)', Career:'rgba(255,165,0,0.15)' };
+  document.getElementById('tools-grid').innerHTML = filtered.map((t,i) => `
+    <div class="tool-card" style="animation-delay:${i*0.03}s;" onclick="openTool('${t.action}','${t.name}')">
+      <span class="tool-emoji">${t.emoji}</span>
+      <h3>${t.name}</h3>
+      <p>${t.desc}</p>
+      <span class="tool-tag" style="background:${catColors[t.cat]||'rgba(255,255,255,0.05)'};color:var(--text-bright);">${t.cat}</span>
+    </div>
+  `).join('');
+}
+function setToolCat(cat) { toolCat = cat; renderTools(); }
+
+// ============================================================
+// LIVE CLASSES
+// ============================================================
+function renderLiveClasses() {
+  document.getElementById('live-classes-grid').innerHTML = MOCK.liveClasses.map(c => `
+    <div class="live-class-card">
+      <div class="live-class-thumb" style="background:${c.color};">
+        <div style="text-align:center;">
+          ${c.status==='live' ? `<span class="live-badge" style="margin-bottom:12px;display:inline-flex;"><span class="live-dot"></span> LIVE</span>` : ''}
+          <div style="font-size:2rem;margin-bottom:8px;">📡</div>
+        </div>
+      </div>
+      <div style="padding:20px;">
+        <h3 style="font-weight:700;margin-bottom:6px;">${c.title}</h3>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">by ${c.instructor}</p>
+        <p style="font-size:0.82rem;color:${c.accent};margin-bottom:16px;">⏰ ${c.time}</p>
+        <a href="${c.link}" class="join-btn" style="display:inline-block;text-decoration:none;width:100%;text-align:center;" onclick="logActivity('live','Joined: ${c.title}');showToast('Joining live class...','success')">
+          ${c.status==='live' ? '🔴 Join Now' : '📅 Schedule'}
+        </a>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// MY LEARNING
+// ============================================================
+function renderMyLearning() {
+  const stats = getStats();
+  const items = [
+    { num: stats.logins, lbl: 'Total Logins' },
+    { num: stats.lecturesWatched, lbl: 'Lectures Watched' },
+    { num: stats.notesViewed, lbl: 'Notes Viewed' },
+    { num: stats.assignmentsCompleted, lbl: 'Assignments Done' },
+    { num: stats.toolsUsed, lbl: 'Tools Used' },
+    { num: stats.codingActivity, lbl: 'Code Runs' },
+    { num: stats.pageVisits, lbl: 'Page Visits' },
+    { num: stats.totalXP, lbl: 'Total XP Earned' },
+  ];
+  document.getElementById('learning-stats').innerHTML = items.map(i=>`
+    <div class="stat-mini">
+      <div class="num">${i.num}</div>
+      <div class="lbl">${i.lbl}</div>
+    </div>
+  `).join('');
+
+  // Session logs
+  const logs = DB.get('actlogs_'+currentUser.email) || [];
+  document.getElementById('session-logs').innerHTML = logs.slice(0,15).map(l=>`
+    <div class="activity-log-item">
+      <i data-lucide="activity" style="width:15px;height:15px;color:var(--primary);"></i>
+      <div style="flex:1;">
+        <div style="font-size:0.85rem;font-weight:600;">${l.desc}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">${new Date(l.time).toLocaleString()}</div>
+      </div>
+    </div>
+  `).join('') || '<p style="color:var(--text-muted);font-size:0.85rem;">No activity yet.</p>';
+
+  // Topic progress
+  const topics = ['Python', 'JavaScript', 'C++', 'Java', 'Web Dev', 'Database'];
+  const watchData = DB.get('watchdata_'+currentUser.email) || {};
+  document.getElementById('topic-progress').innerHTML = topics.map(t=>{
+    const lects = MOCK.lectures.filter(l=>l.category===t||l.category==='Web'&&t==='Web Dev');
+    const prog = lects.length ? Math.round(lects.reduce((s,l)=>(watchData[l.id]?.progress||0)+s,0)/lects.length) : 0;
+    return `
+      <div style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:5px;">
+          <span style="font-weight:600;">${t}</span><span style="color:var(--text-muted);">${prog}%</span>
+        </div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${prog}%;"></div></div>
+      </div>
+    `;
+  }).join('');
+
+  // Recent activity
+  document.getElementById('recent-activity').innerHTML = logs.slice(0,5).map(l=>`
+    <div class="activity-log-item">
+      <span style="font-size:1rem;">📍</span>
+      <div>
+        <div style="font-size:0.85rem;font-weight:600;">${l.desc}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">${new Date(l.time).toLocaleString()}</div>
+      </div>
+    </div>
+  `).join('') || '<p style="color:var(--text-muted);font-size:0.85rem;">No recent activity.</p>';
+  lucide.createIcons();
+}
+
+// ============================================================
+// PROFILE
+// ============================================================
+function renderProfile() {
+  const name = currentUser.name;
+  const initials = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('profile-avatar-big').textContent = initials;
+  document.getElementById('profile-display-name').textContent = name;
+  document.getElementById('profile-display-email').textContent = currentUser.email;
+  document.getElementById('p-name').value = name;
+  document.getElementById('p-email').value = currentUser.email;
+
+  const stats = getStats();
+  const statItems = [
+    { num: stats.logins, lbl: 'Logins' },
+    { num: stats.lecturesWatched, lbl: 'Lectures' },
+    { num: stats.assignmentsCompleted, lbl: 'Completed' },
+    { num: stats.toolsUsed, lbl: 'Tools Used' },
+    { num: stats.codingActivity, lbl: 'Code Runs' },
+    { num: stats.notesViewed, lbl: 'Notes Viewed' },
+    { num: (DB.get('streak_'+currentUser.email)||{count:0}).count, lbl: 'Day Streak' },
+    { num: stats.totalXP, lbl: 'Total XP' },
+  ];
+  document.getElementById('profile-stats').innerHTML = statItems.map(s=>`
+    <div class="stat-mini">
+      <div class="num">${s.num}</div>
+      <div class="lbl">${s.lbl}</div>
+    </div>
+  `).join('');
+
+  const logs = DB.get('actlogs_'+currentUser.email) || [];
+  document.getElementById('activity-logs').innerHTML = logs.slice(0,20).map(l=>`
+    <div class="activity-log-item">
+      <i data-lucide="clock" style="width:14px;height:14px;color:var(--text-muted);"></i>
+      <div style="flex:1;">
+        <div style="font-size:0.82rem;font-weight:600;">${l.desc}</div>
+        <div style="font-size:0.72rem;color:var(--text-muted);">${new Date(l.time).toLocaleString()}</div>
+      </div>
+    </div>
+  `).join('') || '<p style="color:var(--text-muted);font-size:0.85rem;">No activity logged yet.</p>';
+  lucide.createIcons();
+}
+
+function saveProfile() {
+  const name = document.getElementById('p-name').value.trim();
+  const pass = document.getElementById('p-pass').value;
+  if (!name) { showToast('Name cannot be empty.','error'); return; }
+  const users = DB.get('users') || [];
+  const idx = users.findIndex(u=>u.email===currentUser.email);
+  currentUser.name = name;
+  if (pass.length >= 6) currentUser.password = pass;
+  if (idx >= 0) users[idx] = { ...users[idx], ...currentUser };
+  DB.set('users', users);
+  DB.set('session', currentUser);
+  document.getElementById('sidebar-name').textContent = name;
+  document.getElementById('welcome-name').textContent = name.split(' ')[0];
+  const initials = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('sidebar-avatar').textContent = initials;
+  renderProfile();
+  logActivity('profile', 'Updated profile settings');
+  showToast('Profile saved successfully!','success');
+}
+
+// ============================================================
+// MONACO TERMINAL
+// ============================================================
+let monacoEditor = null;
+let monacoReady = false;
+const STARTER = {
+  javascript: `// JavaScript Runner\nconsole.log("Hello, CodeLX! 🚀");\n\n// Try something:\nconst nums = [1,2,3,4,5];\nconst doubled = nums.map(n => n * 2);\nconsole.log("Doubled:", doubled);`,
+  html: `<!DOCTYPE html>\n<html>\n<head><title>My Page</title></head>\n<body>\n  <h1 style="color:#ff5e00;">Hello, CodeLX!</h1>\n  <p>Edit this HTML and click Run.</p>\n</body>\n</html>`,
+  python: `# Python (Simulated)\nprint("Hello, CodeLX! 🐍")\n\nfor i in range(1, 6):\n    print(f"Line {i}")\n\nname = "Student"\nprint(f"Welcome, {name}!")`,
+  cpp: `// C++ (Simulated)\n#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello, CodeLX! 🔧" << endl;\n    for(int i = 1; i <= 5; i++) {\n        cout << "Line " << i << endl;\n    }\n    return 0;\n}`,
+  c: `// C (Simulated)\n#include <stdio.h>\n\nint main() {\n    printf("Hello, CodeLX! ⚙️\\n");\n    int i;\n    for(i = 1; i <= 5; i++) {\n        printf("Line %d\\n", i);\n    }\n    return 0;\n}`,
+  java: `// Java (Simulated)\npublic class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, CodeLX! ☕");\n        for (int i = 1; i <= 5; i++) {\n            System.out.println("Line " + i);\n        }\n    }\n}`,
+};
+const FILENAMES = { javascript:'index.js', html:'index.html', python:'main.py', cpp:'main.cpp', c:'main.c', java:'Main.java' };
+
+function initMonaco() {
+  if (monacoReady) return;
+  require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs' } });
+  require(['vs/editor/editor.main'], function() {
+    monaco.editor.defineTheme('codelx', {
+      base: 'vs-dark', inherit: true,
+      rules: [{ foreground: 'a0f0a0', token: '' }],
+      colors: { 'editor.background': '#0a0b0f', 'editor.foreground': '#e2e4e9', 'editorLineNumber.foreground': '#3a3d5a', 'editor.selectionBackground': '#ff5e0033', 'editorCursor.foreground': '#ff5e00', 'editor.lineHighlightBackground': '#ffffff08' }
+    });
+    monacoEditor = monaco.editor.create(document.getElementById('monaco-editor'), {
+      value: STARTER.javascript, language: 'javascript', theme: 'codelx',
+      minimap: { enabled: false }, fontFamily: "'Courier New', monospace", fontSize: 14,
+      lineNumbers: 'on', wordWrap: 'on', automaticLayout: true, scrollBeyondLastLine: false,
+      padding: { top: 12, bottom: 12 }, renderLineHighlight: 'all', smoothScrolling: true,
+    });
+    monacoReady = true;
+    // Load saved code
+    const saved = DB.get('code_'+currentUser.email);
+    if (saved) monacoEditor.setValue(saved.code || STARTER.javascript);
+  });
+}
+
+function onLangChange() {
+  if (!monacoReady) return;
+  const lang = document.getElementById('lang-select').value;
+  document.getElementById('editor-filename').textContent = FILENAMES[lang];
+  const model = monacoEditor.getModel();
+  monaco.editor.setModelLanguage(model, lang === 'cpp' || lang === 'c' ? 'cpp' : lang === 'java' ? 'java' : lang);
+  monacoEditor.setValue(STARTER[lang] || '// Start coding...');
+  document.getElementById('console-output').innerHTML = `// Switched to ${lang.toUpperCase()}. Press Run to execute.`;
+  document.getElementById('console-output').className = 'console-output';
+}
+
+function runCode() {
+  if (!monacoReady) { showToast('Editor loading, please wait...', 'info'); return; }
+  const lang = document.getElementById('lang-select').value;
+  const code = monacoEditor.getValue();
+  const out = document.getElementById('console-output');
+  out.innerHTML = '<span class="info">⚡ Running...</span>';
+  logActivity('code', 'Ran ' + lang.toUpperCase() + ' code');
+
+  setTimeout(() => {
+    if (lang === 'javascript') {
+      try {
+        const logs = [];
+        const fakeCons = { log:(...a)=>logs.push(a.map(String).join(' ')), error:(...a)=>logs.push('<span class="err">ERROR: '+a.join(' ')+'</span>'), warn:(...a)=>logs.push('WARN: '+a.join(' ')) };
+        new Function('console', code)(fakeCons);
+        out.innerHTML = logs.join('\n') || '<span class="info">// No output</span>';
+      } catch(e) { out.innerHTML = `<span class="err">❌ Error: ${e.message}</span>`; }
+    } else if (lang === 'html') {
+      out.innerHTML = '<span class="info">// HTML rendered in preview (iframe mode)</span>';
+      // Simple preview
+      const previewWin = window.open('','_blank','width=800,height=600');
+      if (previewWin) { previewWin.document.write(code); previewWin.document.close(); }
+      else out.innerHTML = '<span class="info">// Enable popups to see HTML preview.</span>';
+    } else {
+      // Simulated output for C, C++, Java, Python
+      const lines = code.split('\n');
+      const outputs = [];
+      lines.forEach(line => {
+        const printMatch = line.match(/(?:print|cout|printf|println|System\.out\.println)\s*[\(<"f]?["f]?(.+)/);
+        if (printMatch) {
+          let val = printMatch[1].replace(/["']/g,'').replace(/\\n/g,'').replace(/cout\s*<<\s*/g,'').replace(/\s*<<\s*endl/g,'').replace(/\s*<<\s*/g,' ').replace(/;$/,'').trim();
+          val = val.replace(/f"(.+)"/, (_, m) => m.replace(/\{([^}]+)\}/g, '?'));
+          outputs.push(val);
+        }
+      });
+      out.innerHTML = outputs.length
+        ? `<span class="info">// ${lang.toUpperCase()} (Simulated Output):</span>\n` + outputs.join('\n')
+        : `<span class="info">// ${lang.toUpperCase()} Simulated — No print statements found.\n// Add print/cout/printf/println statements to see output.</span>`;
+    }
+  }, 600);
+}
+
+function saveCode() {
+  if (!monacoReady) return;
+  const code = monacoEditor.getValue();
+  const lang = document.getElementById('lang-select').value;
+  DB.set('code_'+currentUser.email, { code, lang });
+  showToast('Code saved locally!', 'success');
+  logActivity('code', 'Saved code (' + lang + ')');
+}
+
+function clearConsole() { document.getElementById('console-output').innerHTML = '// Console cleared.'; }
+
+// ============================================================
+// TOOL MODAL
+// ============================================================
+function openTool(action, name) {
+  logActivity('tool', 'Used tool: ' + name);
+  document.getElementById('tool-modal-title').innerHTML = `<i data-lucide="layers" style="color:var(--primary);"></i> ${name}`;
+  document.getElementById('tool-modal-body').innerHTML = getToolHTML(action, name);
+  openModal('tool-modal');
+  lucide.createIcons();
+  // Run any tool init
+  if (action === 'pomodoro') initPomodoro();
+  if (action === 'typing-test') initTypingTest();
+}
+function closeToolModal() { closeModal('tool-modal'); }
+
+function getToolHTML(action, name) {
+  switch(action) {
+    case 'ai-chat': return `
+      <div class="chat-messages" id="chat-msgs">
+        <div class="chat-msg assistant">👋 Hi! I'm your AI Assistant. Ask me anything about coding, career, or your studies!</div>
+      </div>
+      <div class="chat-input-row">
+        <input type="text" id="chat-inp" placeholder="Type your message..." onkeydown="if(event.key==='Enter')sendChat()">
+        <button class="chat-send-btn" onclick="sendChat()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    `;
+    case 'json-formatter': return `
+      <div class="tool-section"><label>Paste JSON</label>
+        <textarea id="json-in" rows="6" placeholder='{"key": "value"}'></textarea></div>
+      <button class="btn-primary" style="margin-bottom:12px;" onclick="formatJSON()">Format JSON</button>
+      <div class="tool-output" id="json-out">// Output will appear here</div>
+      <button class="copy-btn" onclick="copyText('json-out')">📋 Copy</button>
+    `;
+    case 'color-picker': return `
+      <div class="tool-section"><label>Pick a Color</label>
+        <input type="color" id="cp-color" value="#ff5e00" oninput="updateColorInfo()">
+      </div>
+      <div id="color-info" style="padding:16px;border-radius:var(--radius-sm);margin-top:12px;"></div>
+    `;
+    case 'qr-generator': return `
+      <div class="tool-section"><label>Enter text or URL</label>
+        <input type="text" id="qr-text" placeholder="https://codelx.com" value="https://codelx.com">
+      </div>
+      <button class="btn-primary" style="margin-bottom:16px;" onclick="generateQR()">Generate QR</button>
+      <div id="qr-output" style="text-align:center;"></div>
+    `;
+    case 'word-counter': return `
+      <div class="tool-section"><label>Enter your text</label>
+        <textarea id="wc-text" rows="6" placeholder="Type or paste text here..." oninput="countWords()"></textarea></div>
+      <div id="wc-results" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px;"></div>
+    `;
+    case 'password-gen': return `
+      <div class="tool-section"><label>Password Length: <span id="pw-len-lbl">16</span></label>
+        <input type="range" id="pw-len" min="8" max="64" value="16" oninput="document.getElementById('pw-len-lbl').textContent=this.value;genPW()">
+      </div>
+      <div class="tool-output" id="pw-out" style="font-size:1rem;letter-spacing:1px;"></div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="copy-btn" onclick="copyText('pw-out')">📋 Copy</button>
+        <button class="copy-btn" onclick="genPW()">🔄 Regenerate</button>
+      </div>
+    `;
+    case 'base64': return `
+      <div class="tool-section"><label>Text to Encode/Decode</label>
+        <textarea id="b64-in" rows="4" placeholder="Enter text or base64..."></textarea></div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button class="btn-primary" style="padding:8px 16px;font-size:0.85rem;" onclick="encB64()">Encode</button>
+        <button class="btn-sm" onclick="decB64()">Decode</button>
+      </div>
+      <div class="tool-output" id="b64-out">// Output here</div>
+      <button class="copy-btn" onclick="copyText('b64-out')">📋 Copy</button>
+    `;
+    case 'lorem': return `
+      <div class="tool-section"><label>Paragraphs: <span id="lorem-n-lbl">3</span></label>
+        <input type="range" id="lorem-n" min="1" max="10" value="3" oninput="document.getElementById('lorem-n-lbl').textContent=this.value;">
+      </div>
+      <button class="btn-primary" style="margin-bottom:12px;" onclick="genLorem()">Generate Lorem Ipsum</button>
+      <div class="tool-output" id="lorem-out" style="max-height:200px;overflow-y:auto;"></div>
+      <button class="copy-btn" onclick="copyText('lorem-out')">📋 Copy</button>
+    `;
+    case 'css-gradient': return `
+      <div class="tool-section">
+        <div style="display:flex;gap:10px;margin-bottom:8px;">
+          <div><label style="font-size:0.78rem;">Color 1</label><input type="color" id="g1" value="#ff5e00" oninput="buildGradient()"></div>
+          <div><label style="font-size:0.78rem;">Color 2</label><input type="color" id="g2" value="#00f2fe" oninput="buildGradient()"></div>
+        </div>
+        <label>Direction</label>
+        <select id="g-dir" class="lang-select" style="width:100%;" onchange="buildGradient()">
+          <option value="to right">Left → Right</option>
+          <option value="to bottom">Top → Bottom</option>
+          <option value="135deg">Diagonal</option>
+          <option value="circle">Radial</option>
+        </select>
+      </div>
+      <div id="gradient-preview" style="height:80px;border-radius:var(--radius-sm);margin:12px 0;"></div>
+      <div class="tool-output" id="gradient-css"></div>
+      <button class="copy-btn" onclick="copyText('gradient-css')">📋 Copy CSS</button>
+    `;
+    case 'pomodoro': return `
+      <div style="text-align:center;padding:20px;">
+        <div style="font-size:4rem;font-weight:900;color:var(--primary);font-family:monospace;margin-bottom:16px;" id="pomo-display">25:00</div>
+        <div style="font-size:0.9rem;color:var(--text-muted);margin-bottom:20px;" id="pomo-status">Focus Session</div>
+        <div style="display:flex;gap:10px;justify-content:center;">
+          <button class="btn-primary" id="pomo-btn" onclick="togglePomodoro()">▶ Start</button>
+          <button class="btn-sm" onclick="resetPomodoro()">↺ Reset</button>
+        </div>
+        <div style="margin-top:20px;font-size:0.85rem;color:var(--text-muted);">Sessions completed: <span id="pomo-count">0</span></div>
+      </div>
+    `;
+    case 'typing-test': return `
+      <div id="typing-text" style="padding:16px;background:rgba(0,0,0,0.3);border-radius:var(--radius-sm);font-size:1.05rem;line-height:1.8;margin-bottom:14px;color:var(--text-muted);"></div>
+      <input type="text" id="typing-inp" class="inp" placeholder="Start typing above..." oninput="checkTyping()" disabled>
+      <div id="typing-stats" style="display:flex;gap:16px;margin-top:12px;font-size:0.85rem;color:var(--text-muted);"></div>
+      <button class="btn-primary" style="margin-top:12px;" onclick="startTypingTest()">▶ Start Test</button>
+    `;
+    case 'markdown': return `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="tool-section"><label>Markdown Input</label>
+          <textarea id="md-in" rows="8" placeholder="# Hello\n**Bold** *italic*" oninput="renderMD()"></textarea></div>
+        <div><label style="font-size:0.82rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:6px;">Preview</label>
+          <div id="md-out" style="padding:12px;background:rgba(0,0,0,0.2);border-radius:var(--radius-sm);min-height:160px;font-size:0.9rem;line-height:1.6;"></div></div>
+      </div>
+    `;
+    case 'diff-checker': return `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="tool-section"><label>Text A</label><textarea id="diff-a" rows="6" placeholder="Original text..."></textarea></div>
+        <div class="tool-section"><label>Text B</label><textarea id="diff-b" rows="6" placeholder="Modified text..."></textarea></div>
+      </div>
+      <button class="btn-primary" style="margin-bottom:12px;" onclick="checkDiff()">Compare Texts</button>
+      <div class="tool-output" id="diff-out"></div>
+    `;
+    default: return `
+      <div style="text-align:center;padding:40px 20px;">
+        <div style="font-size:3rem;margin-bottom:16px;">🚧</div>
+        <h3 style="font-weight:700;margin-bottom:8px;">${name}</h3>
+        <p style="color:var(--text-muted);font-size:0.9rem;">This tool is being built. Check back soon!</p>
+        <div style="margin-top:20px;padding:12px;background:rgba(255,94,0,0.08);border:1px solid rgba(255,94,0,0.2);border-radius:var(--radius-sm);font-size:0.85rem;color:var(--primary);">
+          More tools will be added regularly by the admin.
+        </div>
+      </div>
+    `;
+  }
+}
+
+// ---- Tool Logic ----
+function sendChat() {
+  const inp = document.getElementById('chat-inp');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  const msgs = document.getElementById('chat-msgs');
+  msgs.innerHTML += `<div class="chat-msg user">${msg}</div>`;
+  inp.value = '';
+  msgs.innerHTML += `<div class="chat-msg assistant"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+  msgs.scrollTop = msgs.scrollHeight;
+  // Simple AI responses
+  const responses = [
+    "Great question! In programming, this typically relates to the concept of abstraction and encapsulation.",
+    "Let me explain: this is a fundamental concept in computer science. Think of it like building blocks...",
+    "That's a common topic in interviews! The key is to understand the time and space complexity.",
+    "You're on the right track! Practice is the key to mastering this. Try implementing it step by step.",
+    "This is covered in our DSA module. Check the recorded lectures for a detailed explanation!",
+    "Excellent question! Remember: consistency is more important than intensity when learning to code.",
+  ];
+  setTimeout(() => {
+    const dots = msgs.querySelector('.typing-dots');
+    if (dots) dots.parentElement.textContent = responses[Math.floor(Math.random()*responses.length)];
+    msgs.scrollTop = msgs.scrollHeight;
+  }, 1200);
+}
+
+function formatJSON() {
+  try {
+    const parsed = JSON.parse(document.getElementById('json-in').value);
+    document.getElementById('json-out').textContent = JSON.stringify(parsed, null, 2);
+  } catch(e) { document.getElementById('json-out').innerHTML = `<span style="color:#ff4757;">❌ Invalid JSON: ${e.message}</span>`; }
+}
+
+function updateColorInfo() {
+  const hex = document.getElementById('cp-color').value;
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  const hsl = rgbToHsl(r,g,b);
+  document.getElementById('color-info').innerHTML = `
+    <div style="height:60px;border-radius:var(--radius-sm);background:${hex};margin-bottom:12px;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.85rem;">
+      <div class="stat-mini"><div style="font-weight:700;color:var(--text-bright);">${hex.toUpperCase()}</div><div class="lbl">HEX</div></div>
+      <div class="stat-mini"><div style="font-weight:700;color:var(--text-bright);">rgb(${r},${g},${b})</div><div class="lbl">RGB</div></div>
+      <div class="stat-mini"><div style="font-weight:700;color:var(--text-bright);">hsl(${hsl[0]},${hsl[1]}%,${hsl[2]}%)</div><div class="lbl">HSL</div></div>
+      <div class="stat-mini"><div style="font-weight:700;color:var(--text-bright);">rgba(${r},${g},${b},1)</div><div class="lbl">RGBA</div></div>
+    </div>
+  `;
+}
+function rgbToHsl(r,g,b) {
+  r/=255;g/=255;b/=255;
+  const max=Math.max(r,g,b),min=Math.min(r,g,b);
+  let h,s,l=(max+min)/2;
+  if(max===min){h=s=0;}else{const d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);h=max===r?(g-b)/d+(g<b?6:0):max===g?(b-r)/d+2:(r-g)/d+4;h/=6;}
+  return [Math.round(h*360),Math.round(s*100),Math.round(l*100)];
+}
+setTimeout(updateColorInfo, 200);
+
+function generateQR() {
+  const text = document.getElementById('qr-text').value;
+  if (!text) return;
+  const url = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(text)}`;
+  document.getElementById('qr-output').innerHTML = `<img src="${url}" style="border-radius:var(--radius-sm);border:4px solid white;" alt="QR Code"><p style="margin-top:8px;font-size:0.8rem;color:var(--text-muted);">${text}</p>`;
+}
+
+function countWords() {
+  const t = document.getElementById('wc-text').value;
+  const words = t.trim() ? t.trim().split(/\s+/).length : 0;
+  const chars = t.length, charNoSpace = t.replace(/\s/g,'').length, sentences = (t.match(/[.!?]+/g)||[]).length;
+  document.getElementById('wc-results').innerHTML = [
+    {n:words,l:'Words'},{n:chars,l:'Characters'},{n:charNoSpace,l:'No Spaces'},{n:sentences,l:'Sentences'},{n:Math.ceil(words/200),l:'Read (min)'},{n:(t.match(/\n/g)||[]).length+1,l:'Lines'}
+  ].map(x=>`<div class="stat-mini"><div style="font-size:1.3rem;font-weight:800;color:var(--primary);">${x.n}</div><div class="lbl">${x.l}</div></div>`).join('');
+}
+
+function genPW() {
+  const len = parseInt(document.getElementById('pw-len').value);
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
+  let pw = '';
+  for(let i=0;i<len;i++) pw += chars[Math.floor(Math.random()*chars.length)];
+  document.getElementById('pw-out').textContent = pw;
+}
+setTimeout(genPW, 100);
+
+function encB64() { try { document.getElementById('b64-out').textContent = btoa(document.getElementById('b64-in').value); } catch(e){ document.getElementById('b64-out').textContent = 'Error: '+e.message; } }
+function decB64() { try { document.getElementById('b64-out').textContent = atob(document.getElementById('b64-in').value); } catch(e){ document.getElementById('b64-out').textContent = 'Error: Invalid base64'; } }
+
+function genLorem() {
+  const n = parseInt(document.getElementById('lorem-n').value);
+  const para = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.';
+  document.getElementById('lorem-out').textContent = Array(n).fill(para).join('\n\n');
+}
+
+function buildGradient() {
+  const c1=document.getElementById('g1').value, c2=document.getElementById('g2').value;
+  const dir=document.getElementById('g-dir').value;
+  const css = dir==='circle' ? `background: radial-gradient(circle, ${c1}, ${c2});` : `background: linear-gradient(${dir}, ${c1}, ${c2});`;
+  document.getElementById('gradient-preview').style.cssText = css;
+  document.getElementById('gradient-css').textContent = css;
+}
+setTimeout(buildGradient, 200);
+
+function renderMD() {
+  const t = document.getElementById('md-in').value;
+  let html = t.replace(/^### (.+)/gm,'<h3>$1</h3>').replace(/^## (.+)/gm,'<h2>$1</h2>').replace(/^# (.+)/gm,'<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px;">$1</code>')
+    .replace(/\[(.+?)\]\((.+?)\)/g,'<a href="$2" style="color:var(--primary);">$1</a>')
+    .replace(/\n/g,'<br>');
+  document.getElementById('md-out').innerHTML = html;
+}
+
+function checkDiff() {
+  const a = document.getElementById('diff-a').value.split('\n');
+  const b = document.getElementById('diff-b').value.split('\n');
+  let html = '';
+  const max = Math.max(a.length, b.length);
+  for(let i=0;i<max;i++) {
+    if (a[i] !== b[i]) {
+      if (a[i]) html += `<div style="color:#ff4757;background:rgba(255,71,87,0.1);padding:2px 6px;border-radius:3px;">- ${a[i]||''}</div>`;
+      if (b[i]) html += `<div style="color:#22c55e;background:rgba(34,197,94,0.1);padding:2px 6px;border-radius:3px;">+ ${b[i]||''}</div>`;
+    } else {
+      html += `<div style="color:var(--text-muted);padding:2px 6px;">  ${a[i]||''}</div>`;
+    }
+  }
+  document.getElementById('diff-out').innerHTML = html || 'No differences found!';
+}
+
+// Pomodoro
+let pomoInterval, pomoSeconds = 25*60, pomoRunning = false, pomoSessions = 0;
+function initPomodoro() { updatePomoDisplay(); }
+function togglePomodoro() {
+  if (pomoRunning) {
+    clearInterval(pomoInterval); pomoRunning = false;
+    document.getElementById('pomo-btn').textContent = '▶ Resume';
+  } else {
+    pomoRunning = true;
+    document.getElementById('pomo-btn').textContent = '⏸ Pause';
+    pomoInterval = setInterval(() => {
+      pomoSeconds--;
+      updatePomoDisplay();
+      if (pomoSeconds <= 0) {
+        clearInterval(pomoInterval); pomoRunning = false;
+        pomoSessions++;
+        document.getElementById('pomo-count').textContent = pomoSessions;
+        document.getElementById('pomo-status').textContent = 'Session Complete! 🎉';
+        document.getElementById('pomo-btn').textContent = '▶ Start Break';
+        pomoSeconds = 5*60;
+        showToast('Pomodoro session complete! Take a break.', 'success');
+      }
+    }, 1000);
+  }
+}
+function resetPomodoro() {
+  clearInterval(pomoInterval); pomoRunning = false; pomoSeconds = 25*60;
+  document.getElementById('pomo-status').textContent = 'Focus Session';
+  document.getElementById('pomo-btn').textContent = '▶ Start';
+  updatePomoDisplay();
+}
+function updatePomoDisplay() {
+  const m = Math.floor(pomoSeconds/60).toString().padStart(2,'0');
+  const s = (pomoSeconds%60).toString().padStart(2,'0');
+  const el = document.getElementById('pomo-display');
+  if (el) el.textContent = `${m}:${s}`;
+}
+
+// Typing Test
+const typingTexts = [
+  "The quick brown fox jumps over the lazy dog. Programming is the art of telling a computer what to do.",
+  "Practice makes perfect. Every expert was once a beginner. Keep coding every day and you will improve.",
+  "JavaScript is the language of the web. Python is great for data science and automation tasks.",
+  "Consistent daily practice is the key to mastering programming. Start small and build up gradually.",
+];
+let typingStart, typingText = '', typingTimer;
+function initTypingTest() {
+  typingText = typingTexts[Math.floor(Math.random()*typingTexts.length)];
+  document.getElementById('typing-text').textContent = typingText;
+}
+function startTypingTest() {
+  initTypingTest();
+  const inp = document.getElementById('typing-inp');
+  inp.disabled = false; inp.value = ''; inp.focus();
+  typingStart = Date.now();
+}
+function checkTyping() {
+  const inp = document.getElementById('typing-inp');
+  const typed = inp.value;
+  const elapsed = (Date.now()-typingStart)/1000/60;
+  const words = typed.trim().split(/\s+/).length;
+  const wpm = Math.round(words/elapsed)||0;
+  let errors = 0;
+  for(let i=0;i<typed.length;i++) if(typed[i]!==typingText[i]) errors++;
+  const acc = Math.round(((typed.length-errors)/Math.max(typed.length,1))*100);
+  document.getElementById('typing-stats').innerHTML = `<span>WPM: <strong>${wpm}</strong></span><span>Accuracy: <strong>${acc}%</strong></span><span>Errors: <strong>${errors}</strong></span>`;
+  if(typed===typingText) showToast(`Done! ${wpm} WPM, ${acc}% accuracy`, 'success');
+  // Highlight
+  let html = '';
+  for(let i=0;i<typingText.length;i++) {
+    const c = typingText[i];
+    if(i<typed.length) html += typed[i]===c ? `<span style="color:#22c55e;">${c}</span>` : `<span style="color:#ff4757;text-decoration:underline;">${c}</span>`;
+    else if(i===typed.length) html += `<span style="border-left:2px solid var(--primary);">${c}</span>`;
+    else html += `<span style="color:var(--text-muted);">${c}</span>`;
+  }
+  document.getElementById('typing-text').innerHTML = html;
+}
+
+function copyText(id) {
+  const el = document.getElementById(id);
+  const text = el.textContent;
+  navigator.clipboard.writeText(text).then(()=>showToast('Copied to clipboard!','success')).catch(()=>{
+    const ta = document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showToast('Copied!','success');
+  });
+}
+
+// ============================================================
+// MODAL HELPERS
+// ============================================================
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ============================================================
+// SEARCH
+// ============================================================
+function handleSearch(q) {
+  const res = document.getElementById('search-results');
+  if (!q) { res.style.display='none'; return; }
+  const items = [
+    ...MOCK.lectures.map(l=>({type:'Lecture',name:l.title,action:()=>{ switchView('lectures'); setTimeout(()=>openVideoModal(l.id),100); }})),
+    ...MOCK.notes.map(n=>({type:'Note',name:n.title,action:()=>switchView('notes')})),
+    ...MOCK.tools.map(t=>({type:'Tool',name:t.name,action:()=>openTool(t.action,t.name)})),
+  ].filter(i=>i.name.toLowerCase().includes(q.toLowerCase())).slice(0,6);
+  if (!items.length) { res.style.display='none'; return; }
+  res.style.display='block';
+  res.innerHTML = items.map((item,i)=>`
+    <div class="search-result-item" onclick="window._searchActions[${i}]();document.getElementById('search-results').style.display='none';document.getElementById('global-search').value='';">
+      <span style="font-size:0.72rem;background:rgba(255,94,0,0.15);color:var(--primary);padding:2px 8px;border-radius:50px;font-weight:700;flex-shrink:0;">${item.type}</span>
+      <span style="font-size:0.88rem;">${item.name}</span>
+    </div>
+  `).join('');
+  window._searchActions = items.map(i=>i.action);
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-wrap')) document.getElementById('search-results').style.display='none';
+});
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg, type='info') {
+  const icons = { success:'✅', error:'❌', info:'ℹ️' };
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+  document.getElementById('toast-container').appendChild(toast);
+  setTimeout(()=>toast.remove(), 3500);
+}
+
+// ============================================================
+// PARTICLES
+// ============================================================
+function initParticles() {
+  const container = document.getElementById('particles-bg');
+  for (let i = 0; i < 20; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random() * 3 + 1;
+    const orange = Math.random() > 0.6;
+    p.style.cssText = `
+      width:${size}px;height:${size}px;
+      left:${Math.random()*100}%;
+      background:${orange?'rgba(255,94,0,0.5)':'rgba(0,242,254,0.3)'};
+      animation-duration:${8+Math.random()*15}s;
+      animation-delay:${Math.random()*10}s;
+    `;
+    container.appendChild(p);
+  }
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+function boot() {
+  initParticles();
+  const session = DB.get('session');
+  if (session) {
+    currentUser = session;
+    document.getElementById('auth-overlay').style.display='none';
+    document.getElementById('app').style.display='flex';
+    initApp();
+    updateStreak();
+  }
+  setTimeout(()=>{
+    document.getElementById('loader-overlay').classList.add('hidden');
+    setTimeout(()=> document.getElementById('loader-overlay').style.display='none', 500);
+  }, 1800);
+}
+
+window.addEventListener('load', () => {
+  boot();
+  lucide.createIcons();
+});
+</script>
+</body>
+</html>
